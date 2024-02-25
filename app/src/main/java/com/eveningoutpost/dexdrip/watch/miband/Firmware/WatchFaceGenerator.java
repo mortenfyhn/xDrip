@@ -245,15 +245,14 @@ public class WatchFaceGenerator {
             canvas.drawText(bgtextDigits, bgTextPosX, bgTextPosY, paint);
         }
 
-        //draw unitized delta
+        //draw timestamp of glucose
         paint.setTextScaleX(1);
         paint.setColor(textColor);
         int unitsTextPosX = 0;//px
         int unitsTextPosY = bgTextPosY + timeStampTextSize +1;//px
         paint.setTextSize(timeStampTextSize);
-        String delta = unitized_delta + " " + timeStampText;
-        paint.getTextBounds(delta, 0, delta.length(), bounds);
-        canvas.drawText(delta, width - bounds.width(), unitsTextPosY, paint);
+        paint.getTextBounds(timeStampText, 0, timeStampText.length(), bounds);
+        canvas.drawText(timeStampText, width - bounds.width(), unitsTextPosY, paint);
 
         //draw treatment
         if (isGraphEnabled && showTreatment) {
