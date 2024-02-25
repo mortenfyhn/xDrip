@@ -160,7 +160,7 @@ public class WatchFaceGenerator {
             //draw graph
             drawMutex = true;
             long startTime = System.currentTimeMillis() - Constants.HOUR_IN_MS * graphHours;
-            long endTime = System.currentTimeMillis() + Constants.MINUTE_IN_MS * 30;
+            long endTime = System.currentTimeMillis();
             JoH.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
