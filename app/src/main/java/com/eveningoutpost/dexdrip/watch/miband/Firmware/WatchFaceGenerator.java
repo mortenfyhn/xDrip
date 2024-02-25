@@ -57,8 +57,8 @@ public class WatchFaceGenerator {
     private static Bitmap graphImage;
     private static boolean drawMutex;
 
-    private static int highColor = 0xfff86f69;
-    private static int lowColor = 0xff4b95ff;
+    private static int highColor = Color.WHITE;
+    private static int lowColor = Color.WHITE;
     private static int textColor = Color.WHITE;
     private static int noDataTextSize = 30; //px
     private static int bgValueTextSize = 50; //px
