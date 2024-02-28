@@ -1,5 +1,6 @@
 package com.eveningoutpost.dexdrip.cgm.carelinkfollow;
 
+import com.eveningoutpost.dexdrip.ActiveInsulin;
 import com.eveningoutpost.dexdrip.Home;
 import com.eveningoutpost.dexdrip.models.BgReading;
 import com.eveningoutpost.dexdrip.models.BloodTest;
@@ -62,6 +63,9 @@ public class CareLinkDataProcessor {
             UserError.Log.d(TAG, "Not connected to pump => time can be wrong, leave processing!");
             return;
         }
+
+        // Nasty hack to store active insulin, see ActiveInsulin class definition
+        ActiveInsulin.amount = recentData.activeInsulin.amount;
 
         //SENSOR GLUCOSE (if available)
         if (recentData.sgs != null) {

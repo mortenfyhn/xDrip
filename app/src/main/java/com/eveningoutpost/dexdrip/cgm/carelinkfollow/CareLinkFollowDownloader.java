@@ -161,6 +161,7 @@ public class CareLinkFollowDownloader {
                 try {
                     UserError.Log.d(TAG, "Start process data");
                     //Process CareLink data (conversion and update xDrip data)
+
                     CareLinkDataProcessor.processData(recentData, true);
                     UserError.Log.d(TAG, "ProcessData finished!");
                     //Update Service status

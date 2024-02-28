@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 
+import com.eveningoutpost.dexdrip.ActiveInsulin;
 import com.eveningoutpost.dexdrip.BestGlucose;
 import com.eveningoutpost.dexdrip.models.JoH;
 import com.eveningoutpost.dexdrip.models.Treatments;
@@ -254,8 +255,14 @@ public class WatchFaceGenerator {
         paint.getTextBounds(timeStampText, 0, timeStampText.length(), bounds);
         canvas.drawText(timeStampText, width - bounds.width(), unitsTextPosY, paint);
 
+        // Nasty hack to draw active insulin, see ActiveInsulin class definition
+        String activeInsulinText = String.format("%.1f u act ins", ActiveInsulin.amount);
+        paint.getTextBounds(activeInsulinText, 0, activeInsulinText.length(), bounds);
+        canvas.drawText(activeInsulinText, width - bounds.width(), unitsTextPosY + timeStampTextSize + 1, paint);
+
         //draw treatment
-        if (isGraphEnabled && showTreatment) {
+        // Disabled because I'm using the space to display active insulin
+        if (false /*isGraphEnabled && showTreatment*/) {
             Treatments treatment = Treatments.last();
             if (treatment.hasContent() && !treatment.noteOnly()) {
                 int treatmentTextPosY = unitsTextPosY + timeStampTextSize +1;//px
