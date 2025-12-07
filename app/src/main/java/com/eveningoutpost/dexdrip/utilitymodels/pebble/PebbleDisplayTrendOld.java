@@ -336,8 +336,12 @@ public class PebbleDisplayTrendOld extends PebbleDisplayAbstract {
                         .setBgGraphBuilder(this.bgGraphBuilder)
                         .setStart(System.currentTimeMillis() - 60000 * 60 * trendPeriod)
                         .setEnd(System.currentTimeMillis())
-                        .setHeightPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 63 : 84) // 84
-                        .setWidthPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 84 : 144) // 144
+                        // Increased graph size for Pebble 2 (BW) from 84x63 to 144x100
+                        // - Full width: 84 -> 144 pixels (matches screen width)
+                        // - Taller: 63 -> 100 pixels (more vertical space for glucose trend)
+                        // - Color Pebble Time remains at 144x84
+                        .setHeightPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 100 : 84)
+                        .setWidthPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 144 : 144)
                         .showHighLine(highLine)
                         .showLowLine(lowLine)
                        // .showAxes(true)
