@@ -244,33 +244,25 @@ public class BgSparklineBuilder {
         Viewport viewport = chart.getMaximumViewport();
         viewport.left = start;
         viewport.right = end;
-        if (height<=SCALE_TRIGGER)
-        {
-            // for pebble classic we always want the lowest mark to be in the same place on the image
-            viewport.bottom= (float)(bgGraphBuilder.doMgdl ? 2 * Constants.MMOLL_TO_MGDL : 2);
-            viewport.top= (float)(bgGraphBuilder.doMgdl ? 16 * Constants.MMOLL_TO_MGDL : 16);
-        }
+        // FIXED: Always set viewport for all Pebble graphs, regardless of size
+        // Previously only set when height <= 84px (SCALE_TRIGGER), causing graphs
+        // taller than 84px to auto-scale incorrectly.
+        // Viewport defines Y-axis range: 2-16 mmol/L (36-288 mg/dL) for consistency
+        viewport.bottom= (float)(bgGraphBuilder.doMgdl ? 2 * Constants.MMOLL_TO_MGDL : 2);
+        viewport.top= (float)(bgGraphBuilder.doMgdl ? 16 * Constants.MMOLL_TO_MGDL : 16);
         chart.setViewportCalculationEnabled(false);
         chart.setInteractive(false);
         chart.setCurrentViewport(viewport);
         chart.setPadding(0, 0, 0, 0);
         chart.setLeft(0);
         chart.setTop(0);
-        if (height>SCALE_TRIGGER) {
-            chart.setRight(width);
-            chart.setBottom(height);
-        } else {
-            chart.setRight(width*2);
-            chart.setBottom(height*2);
-        }
+        // Always use 2x scaling and downsample for smaller, smoother dots
+        chart.setRight(width*2);
+        chart.setBottom(height*2);
 
             Log.d(TAG,"pebble debug: w:"+width+" h:"+height+" start:"+start+" end:"+end+" ");
 
-        if (height>SCALE_TRIGGER) {
-            return getViewBitmap(chart);
-        } else {
-            return getResizedBitmap(getViewBitmap(chart),width,height);
-        }
+        return getResizedBitmap(getViewBitmap(chart),width,height);
     }
 
     protected Bitmap getResizedBitmap(Bitmap bm, int newWidth, int newHeight) {
