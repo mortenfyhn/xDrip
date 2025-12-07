@@ -245,7 +245,17 @@ public class SimpleImageEncoder {
             }
         }
         else {
-            quantize(pixels, imageInfo.cols);
+            // DISABLED: Floyd-Steinberg dithering for 2-color conversion
+            // quantize(pixels, imageInfo.cols);
+            //
+            // Why disabled:
+            // - Dithering creates scattered black/white pixel patterns to simulate gray
+            // - For glucose graph dots, this creates irregular/fuzzy shapes
+            // - Simple thresholding (each pixel → nearest color) gives cleaner dots
+            //
+            // Trade-off:
+            // - Crisp dots/lines on graphs (GOOD for UI elements)
+            // - No smooth gradients (not needed for Pebble glucose graphs)
         }
         ImageLineInt line = new ImageLineInt(imageInfo);
         for (int y = 0; y < imageInfo.rows; y++) {
