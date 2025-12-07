@@ -349,8 +349,9 @@ public class PebbleDisplayTrend extends PebbleDisplayAbstract {
                         .setBgGraphBuilder(this.bgGraphBuilder)
                             .setStart(System.currentTimeMillis() - 60000 * 60 * trendPeriod)
                             .setEnd(System.currentTimeMillis())
-                        .setHeightPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 63 : 84) // 84
-                        .setWidthPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 84 : 144) // 144
+                        // Increased graph size for Pebble 2 (BW) from 84x63 to 144x100 (same as PebbleDisplayTrendOld)
+                        .setHeightPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 100 : 84)
+                        .setWidthPx(PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic ? 144 : 144)
                             .showHighLine(highLine)
                             .showLowLine(lowLine)
                             .setTinyDots(Pref.getBoolean("pebble_tiny_dots", false))
