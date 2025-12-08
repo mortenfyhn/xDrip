@@ -766,8 +766,9 @@ public class BgGraphBuilder {
         Line highValuesLine = new Line(highValues);
         //highValuesLine.setColor(ChartUtils.COLOR_ORANGE);
         highValuesLine.setColor(getCol(X.color_high_values));
-        highValuesLine.setHasLines(false);
-        highValuesLine.setPointRadius(pointSize);
+        highValuesLine.setHasLines(true);
+        highValuesLine.setStrokeWidth(1);
+        highValuesLine.setPointRadius(2);
         highValuesLine.setHasPoints(true);
         return highValuesLine;
     }
@@ -775,8 +776,9 @@ public class BgGraphBuilder {
     public Line badValuesLine() {
         Line badValuesLine = new Line(badValues);
         badValuesLine.setColor(getCol(X.color_bad_values));
-        badValuesLine.setHasLines(false);
-        badValuesLine.setPointRadius(pointSize);
+        badValuesLine.setHasLines(true);
+        badValuesLine.setStrokeWidth(1);
+        badValuesLine.setPointRadius(2);
         badValuesLine.setHasPoints(true);
         return badValuesLine;
     }
@@ -785,8 +787,9 @@ public class BgGraphBuilder {
         Line lowValuesLine = new Line(lowValues);
         //lowValuesLine.setColor(Color.parseColor("#C30909"));
         lowValuesLine.setColor(getCol(X.color_low_values));
-        lowValuesLine.setHasLines(false);
-        lowValuesLine.setPointRadius(pointSize);
+        lowValuesLine.setHasLines(true);
+        lowValuesLine.setStrokeWidth(1);
+        lowValuesLine.setPointRadius(2);
         lowValuesLine.setHasPoints(true);
         return lowValuesLine;
     }
@@ -795,8 +798,9 @@ public class BgGraphBuilder {
         Line inRangeValuesLine = new Line(inRangeValues);
         //inRangeValuesLine.setColor(ChartUtils.COLOR_BLUE);
         inRangeValuesLine.setColor(getCol(X.color_inrange_values));
-        inRangeValuesLine.setHasLines(false);
-        inRangeValuesLine.setPointRadius(pointSize);
+        inRangeValuesLine.setHasLines(true);
+        inRangeValuesLine.setStrokeWidth(1);
+        inRangeValuesLine.setPointRadius(2);
         inRangeValuesLine.setHasPoints(true);
         return inRangeValuesLine;
     }
