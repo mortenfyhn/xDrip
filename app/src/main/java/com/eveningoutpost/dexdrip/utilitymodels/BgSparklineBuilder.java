@@ -201,13 +201,9 @@ public class BgSparklineBuilder {
             }
         }
         if (showLowLine) {
-            if (height <= SCALE_TRIGGER) {
-                Line line = bgGraphBuilder.lowLine();
-                line.setFilled(false);
-                lines.add(line);
-            } else {
-                lines.add(bgGraphBuilder.lowLine());
-            }
+            Line line = bgGraphBuilder.lowLine();
+            line.setFilled(false);
+            lines.add(line);
         }
 
         if (showHighLine)
