@@ -252,12 +252,7 @@ public class BgSparklineBuilder {
         chart.setPadding(0, 0, 0, 0);
         chart.setLeft(0);
         chart.setTop(0);
-        // OPTIMIZATION: Render at 2x size then downsample for better dot appearance
-        // Process: Render 288x200 → resize to 144x100
-        // Benefits:
-        // - Makes dots effectively smaller (radius=1 at 2x → ~2px after downsampling)
-        // - Provides anti-aliasing smoothing when downsampled
-        // Previously only used 2x for height <= 84px; now applied to all sizes
+        // Always use 2x scaling and downsample for smaller, smoother dots
         chart.setRight(width*2);
         chart.setBottom(height*2);
 
