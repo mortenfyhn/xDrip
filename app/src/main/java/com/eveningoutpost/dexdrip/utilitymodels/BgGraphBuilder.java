@@ -729,10 +729,20 @@ public class BgGraphBuilder {
 
             lines.add(remoteValuesLine()); // TODO conditional ?
             lines.add(backFillValuesLine()); // TODO conditional ?
-            lines.add(badValuesLine());
-            lines.add(inRangeValuesLine());
-            lines.add(lowValuesLine());
-            lines.add(highValuesLine());
+
+            // Split glucose lines to prevent connecting across time gaps
+            for (Line line : autoSplitLine(badValuesLine(), 15)) {
+                lines.add(line);
+            }
+            for (Line line : autoSplitLine(inRangeValuesLine(), 15)) {
+                lines.add(line);
+            }
+            for (Line line : autoSplitLine(lowValuesLine(), 15)) {
+                lines.add(line);
+            }
+            for (Line line : autoSplitLine(highValuesLine(), 15)) {
+                lines.add(line);
+            }
 
             List<Line> extra_lines = extraLines();
             for (Line eline : extra_lines) {
@@ -1232,6 +1242,9 @@ public class BgGraphBuilder {
                 plugin_adjusted = true; // plugin will be adjusting data
             }
 
+            // Track previous value category to connect lines at boundaries
+            int previousCategory = -1; // -1=unknown, 0=low, 1=inRange, 2=high
+
             for (final BgReading bgReading : bgReadings) {
                 // jamorham special
 
@@ -1285,17 +1298,42 @@ public class BgGraphBuilder {
                     if (unitized(bgReading.calculated_value) <= defaultMaxY) { // Don't display value marked as bad if greater than the default Max (defaultMaxY)
                         badValues.add(new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(bgReading.calculated_value)));
                     }
+                    previousCategory = -1; // Reset for bad values
                 } else if (bgReading.calculated_value >= BgReading.BG_READING_MAXIMUM_VALUE) {
-                    highValues.add(new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(BgReading.BG_READING_MAXIMUM_VALUE)));
+                    HPointValue point = new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(BgReading.BG_READING_MAXIMUM_VALUE));
+                    highValues.add(point);
+                    // Add to previous category for smooth transition
+                    if (previousCategory == 1) inRangeValues.add(point);
+                    else if (previousCategory == 0) lowValues.add(point);
+                    previousCategory = 2;
                 } else if (unitized(bgReading.calculated_value) >= highMark) {
-                    highValues.add(new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(bgReading.calculated_value)));
+                    HPointValue point = new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(bgReading.calculated_value));
+                    highValues.add(point);
+                    // Add to previous category for smooth transition
+                    if (previousCategory == 1) inRangeValues.add(point);
+                    else if (previousCategory == 0) lowValues.add(point);
+                    previousCategory = 2;
                 } else if (unitized(bgReading.calculated_value) >= lowMark) {
                     val ppx = new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(bgReading.calculated_value));
                     inRangeValues.add(ppx);
+                    // Add to previous category for smooth transition
+                    if (previousCategory == 2) highValues.add(ppx);
+                    else if (previousCategory == 0) lowValues.add(ppx);
+                    previousCategory = 1;
                 } else if (bgReading.calculated_value >= 40) {
-                    lowValues.add(new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(bgReading.calculated_value)));
+                    HPointValue point = new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(bgReading.calculated_value));
+                    lowValues.add(point);
+                    // Add to previous category for smooth transition
+                    if (previousCategory == 1) inRangeValues.add(point);
+                    else if (previousCategory == 2) highValues.add(point);
+                    previousCategory = 0;
                 } else if (bgReading.calculated_value > 13) {
-                    lowValues.add(new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(40)));
+                    HPointValue point = new HPointValue((double) (bgReading.timestamp / FUZZER), (float) unitized(40));
+                    lowValues.add(point);
+                    // Add to previous category for smooth transition
+                    if (previousCategory == 1) inRangeValues.add(point);
+                    else if (previousCategory == 2) highValues.add(point);
+                    previousCategory = 0;
                 }
 
                 if (illustrate_backfilled_data && bgReading.calculated_value > 13 && bgReading.calculated_value < 400 && bgReading.isBackfilled()) {
