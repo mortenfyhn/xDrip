@@ -3127,6 +3127,13 @@ public class Home extends ActivityWithMenu implements ActivityCompat.OnRequestPe
                 addDisplayDelta();
             }
         }
+
+        // Add IOB if available (from companion app or graph calculation)
+        Double iob = Treatments.getCurrentIoB();
+        if (iob != null) {
+            notificationText.append("\nIoB: " + String.format("%.2f", iob) + " U");
+        }
+
         if (bgGraphBuilder.unitized(estimate) <= bgGraphBuilder.lowMark) {
             currentBgValueText.setTextColor(getCol(ColorCache.X.color_low_bg_values));
         } else if (bgGraphBuilder.unitized(estimate) >= bgGraphBuilder.highMark) {
