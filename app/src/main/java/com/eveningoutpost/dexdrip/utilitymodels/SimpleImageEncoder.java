@@ -245,7 +245,21 @@ public class SimpleImageEncoder {
             }
         }
         else {
-            quantize(pixels, imageInfo.cols);
+            // For B&W (2 colors), use simple threshold instead of dithering for crisper pixels
+            if (palette.length == 2) {
+                for (int i = 0; i < pixels.length; i++) {
+                    int pixel = pixels[i];
+                    // Simple brightness threshold: calculate luminance
+                    int r = Color.red(pixel);
+                    int g = Color.green(pixel);
+                    int b = Color.blue(pixel);
+                    int brightness = (int) (0.299 * r + 0.587 * g + 0.114 * b);
+                    pixels[i] = brightness > 127 ? Color.WHITE : Color.BLACK;
+                }
+            } else {
+                // Use dithering for color/multi-tone images
+                quantize(pixels, imageInfo.cols);
+            }
         }
         ImageLineInt line = new ImageLineInt(imageInfo);
         for (int y = 0; y < imageInfo.rows; y++) {

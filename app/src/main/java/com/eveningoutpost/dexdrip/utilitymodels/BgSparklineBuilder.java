@@ -44,8 +44,10 @@ public class BgSparklineBuilder {
     protected boolean useSmallDots = true;
     protected boolean useTinyDots = false;
     protected boolean showFiltered = false;
+    protected boolean hideDots = false;
 
     protected Integer useSpecificDotSize = null;
+    protected Integer lineWidth = null;
     protected int backgroundColor = Color.TRANSPARENT;
     protected final static int SCALE_TRIGGER = 84;
 
@@ -127,6 +129,16 @@ public class BgSparklineBuilder {
 
     public BgSparklineBuilder setDotSize(int size) {
         this.useSpecificDotSize = size;
+        return this;
+    }
+
+    public BgSparklineBuilder setHideDots(boolean hideDots) {
+        this.hideDots = hideDots;
+        return this;
+    }
+
+    public BgSparklineBuilder setLineWidth(int width) {
+        this.lineWidth = width;
         return this;
     }
 
@@ -219,6 +231,14 @@ public class BgSparklineBuilder {
         if (useSpecificDotSize != null) {
             for(Line line: lines)
                 line.setPointRadius(useSpecificDotSize);
+        }
+        if (hideDots) {
+            for(Line line: lines)
+                line.setHasPoints(false);
+        }
+        if (lineWidth != null) {
+            for(Line line: lines)
+                line.setStrokeWidth(lineWidth);
         }
         LineChartData lineData = new LineChartData(lines);
         if (showAxes) {

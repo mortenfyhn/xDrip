@@ -332,7 +332,7 @@ public class PebbleDisplayTrendOld extends PebbleDisplayAbstract {
 
 
                 Log.d(TAG, "sendTrendToPebble: highLine is " + highLine + ", lowLine is " + lowLine + ",trendPeriod is " + trendPeriod);
-                Bitmap bgTrend = new BgSparklineBuilder(this.context)
+                BgSparklineBuilder builder = new BgSparklineBuilder(this.context)
                         .setBgGraphBuilder(this.bgGraphBuilder)
                         .setStart(System.currentTimeMillis() - 60000 * 60 * trendPeriod)
                         .setEnd(System.currentTimeMillis())
@@ -345,10 +345,18 @@ public class PebbleDisplayTrendOld extends PebbleDisplayAbstract {
                         .showHighLine(highLine)
                         .showLowLine(lowLine)
                        // .showAxes(true)
-                        .setTinyDots(Pref.getBooleanDefaultFalse("pebble_tiny_dots"))
-                        .setShowFiltered(Pref.getBooleanDefaultFalse("pebble_filtered_line"))
-                                //.setSmallDots()
-                        .build();
+                        .setShowFiltered(Pref.getBooleanDefaultFalse("pebble_filtered_line"));
+
+                // For B&W Pebble: use lines only (no dots)
+                if (PebbleUtil.pebbleDisplayType == PebbleDisplayType.TrendClassic) {
+                    builder.setHideDots(true)
+                           .setLineWidth(1);
+                } else {
+                    // Color Pebble Time: keep dots
+                    builder.setTinyDots(Pref.getBooleanDefaultFalse("pebble_tiny_dots"));
+                }
+
+                Bitmap bgTrend = builder.build();
 
                 //encode the trend bitmap as a PNG
 
