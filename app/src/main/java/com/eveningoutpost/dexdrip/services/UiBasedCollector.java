@@ -30,6 +30,7 @@ import com.eveningoutpost.dexdrip.R;
 import com.eveningoutpost.dexdrip.alert.Persist;
 import com.eveningoutpost.dexdrip.cgm.dex.BlueTails;
 import com.eveningoutpost.dexdrip.models.BgReading;
+import com.eveningoutpost.dexdrip.models.IobReading;
 import com.eveningoutpost.dexdrip.models.JoH;
 import com.eveningoutpost.dexdrip.models.Sensor;
 import com.eveningoutpost.dexdrip.models.UserError;
@@ -222,6 +223,15 @@ public class UiBasedCollector extends NotificationListenerService {
             if (iob != null) {
                 if (debug) UserError.Log.d(TAG, "Inserting new IoB value extracted from CV: " + iob);
                 PumpStatus.setBolusIoB(iob);
+                try {
+                    IobReading.create(System.currentTimeMillis(), iob);
+                    UserError.Log.uel(TAG, "IoB extracted and stored: " + iob + "U");
+                } catch (Exception e) {
+                    UserError.Log.e(TAG, "Failed to store IoB reading: " + e);
+                    UserError.Log.uel(TAG, "IoB extracted: " + iob + "U (storage failed)");
+                }
+            } else {
+                UserError.Log.uel(TAG, "Failed to extract IoB from notification");
             }
         } catch (Exception e) {
             UserError.Log.e(TAG, "exception in processCompanionAppIoBNotificationCV: " + e);

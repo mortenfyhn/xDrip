@@ -994,6 +994,31 @@ public class Treatments extends Model {
     public static List<Iob> ioBForGraph_new(long startTime) {
 
        // Log.d(TAG, "Processing iobforgraph2: main  ");
+
+        // Use companion app IoB data if enabled
+        if (Pref.getBooleanDefaultFalse("fetch_iob_from_companion_app")) {
+            Log.d(TAG, "Fetching companion app IoB data from: " + JoH.dateTimeText(startTime));
+            List<IobReading> readings = IobReading.latestForGraph(startTime);
+            if (readings != null && readings.size() > 0) {
+                List<Iob> iobList = new ArrayList<>();
+                for (IobReading reading : readings) {
+                    Iob iob = new Iob();
+                    iob.timestamp = reading.timestamp;
+                    iob.iob = reading.iob;
+                    iobList.add(iob);
+                }
+                Log.d(TAG, "Using companion app IoB data: " + iobList.size() + " readings from " +
+                      JoH.dateTimeText(iobList.get(0).timestamp) + " to " +
+                      JoH.dateTimeText(iobList.get(iobList.size() - 1).timestamp));
+                UserError.Log.uel(TAG, "IoB graph: using " + iobList.size() + " companion app readings");
+                return iobList;
+            } else {
+                Log.d(TAG, "No companion app IoB readings found, returning null");
+                UserError.Log.uel(TAG, "IoB graph: no companion app data available yet");
+                return null;
+            }
+        }
+
         JoH.benchmark_method_start();
         final boolean multipleInsulins = MultipleInsulins.isEnabled();
         final boolean useBasal = MultipleInsulins.useBasalActivity();

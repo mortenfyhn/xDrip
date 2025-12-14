@@ -5,6 +5,7 @@ import android.content.Intent;
 import com.eveningoutpost.dexdrip.BestGlucose;
 import com.eveningoutpost.dexdrip.models.BgReading;
 import com.eveningoutpost.dexdrip.models.JoH;
+import com.eveningoutpost.dexdrip.models.Treatments;
 import com.eveningoutpost.dexdrip.models.UserError.Log;
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
@@ -80,6 +81,12 @@ public class PebbleDisplayStandard extends PebbleDisplayAbstract {
         dictionary.addString(BG_DELTA_KEY, bgDelta);
 
         addBatteryStatusToDictionary(dictionary);
+
+        // Add IoB if available
+        Double iob = Treatments.getCurrentIoB();
+        if (iob != null) {
+            dictionary.addString(IOB_KEY, String.format("%.2f", iob));
+        }
 
         return dictionary;
     }

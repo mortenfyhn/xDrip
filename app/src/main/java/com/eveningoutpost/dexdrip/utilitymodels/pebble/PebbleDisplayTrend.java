@@ -9,6 +9,7 @@ import com.eveningoutpost.dexdrip.Home;
 import com.eveningoutpost.dexdrip.models.ActiveBgAlert;
 import com.eveningoutpost.dexdrip.models.BgReading;
 import com.eveningoutpost.dexdrip.models.JoH;
+import com.eveningoutpost.dexdrip.models.Treatments;
 import com.eveningoutpost.dexdrip.models.UserError.Log;
 import com.eveningoutpost.dexdrip.utilitymodels.BgGraphBuilder;
 import com.eveningoutpost.dexdrip.utilitymodels.BgSparklineBuilder;
@@ -302,6 +303,12 @@ public class PebbleDisplayTrend extends PebbleDisplayAbstract {
         } else {
             removeBatteryStatusFromDictionary(this.dictionary);
     }
+
+        // Add IoB if available
+        Double iob = Treatments.getCurrentIoB();
+        if (iob != null) {
+            this.dictionary.addString(IOB_KEY, String.format("%.2f", iob));
+        }
 
         return this.dictionary;
     }
