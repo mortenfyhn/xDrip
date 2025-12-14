@@ -219,6 +219,9 @@ public class UiBasedCollector extends NotificationListenerService {
             if (iob != null) {
                 if (debug) UserError.Log.d(TAG, "Inserting new IoB value extracted from CV: " + iob);
                 iob_store.set(iob);
+                UserError.Log.uel(TAG, "IoB extracted: " + iob + "U");
+            } else {
+                UserError.Log.uel(TAG, "Failed to extract IoB from notification");
             }
         } catch (Exception e) {
             UserError.Log.e(TAG, "exception in processCompanionAppIoBNotificationCV: " + e);
