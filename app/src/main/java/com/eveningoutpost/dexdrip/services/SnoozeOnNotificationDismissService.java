@@ -16,7 +16,7 @@ import com.eveningoutpost.dexdrip.SnoozeActivity;
 import com.eveningoutpost.dexdrip.utilitymodels.AlertPlayer;
 import com.eveningoutpost.dexdrip.utilitymodels.Constants;
 import com.eveningoutpost.dexdrip.utilitymodels.Pref;
-import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;
+//import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;  // Temporarily disabled
 import com.eveningoutpost.dexdrip.xdrip;
 
 /**
@@ -91,7 +91,7 @@ public class SnoozeOnNotificationDismissService extends IntentService {
 
         if (Pref.getBooleanDefaultFalse("pref_amazfit_enable_key")
                 && Pref.getBooleanDefaultFalse("pref_amazfit_BG_alert_enable_key")) {
-            Amazfitservice.start("xDrip_AlarmCancel");
+            //Amazfitservice.start("xDrip_AlarmCancel");  // Temporarily disabled
         }
     }
 }

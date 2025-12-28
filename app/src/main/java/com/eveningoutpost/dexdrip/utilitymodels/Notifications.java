@@ -47,7 +47,7 @@ import com.eveningoutpost.dexdrip.evaluators.PersistentHigh;
 import com.eveningoutpost.dexdrip.ui.NumberGraphic;
 import com.eveningoutpost.dexdrip.utils.DexCollectionType;
 import com.eveningoutpost.dexdrip.utils.PowerStateReceiver;
-import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;
+//import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;  // Temporarily disabled
 import com.eveningoutpost.dexdrip.services.broadcastservice.BroadcastEntry;
 import com.eveningoutpost.dexdrip.xdrip;
 
@@ -1052,7 +1052,7 @@ public class Notifications extends IntentService {
 
             if (Pref.getBooleanDefaultFalse("pref_amazfit_enable_key")
                     && Pref.getBooleanDefaultFalse("pref_amazfit_other_alert_enable_key")) {
-                Amazfitservice.start("xDrip_Otheralert", message, 30);
+                //Amazfitservice.start("xDrip_Otheralert", message, 30);  // Temporarily disabled
             }
 
             BroadcastEntry.sendAlert(type, message);

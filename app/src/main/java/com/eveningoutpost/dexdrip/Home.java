@@ -157,7 +157,7 @@ import com.eveningoutpost.dexdrip.utils.LibreTrendGraph;
 import com.eveningoutpost.dexdrip.utils.Preferences;
 import com.eveningoutpost.dexdrip.utils.SdcardImportExport;
 import com.eveningoutpost.dexdrip.utils.TestFeature;
-import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;
+//import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;  // Temporarily disabled
 import com.eveningoutpost.dexdrip.wearintegration.WatchUpdaterService;
 import com.github.amlcurran.showcaseview.ShowcaseView;
 import com.github.amlcurran.showcaseview.targets.Target;
@@ -3479,7 +3479,7 @@ public class Home extends ActivityWithMenu implements ActivityCompat.OnRequestPe
     public void resendGlucoseToWatch(MenuItem myitem) {
         WatchUpdaterService.startServiceAndResendData(0);
         if (Pref.getBooleanDefaultFalse("pref_amazfit_enable_key")) {
-            Amazfitservice.start("xDrip_synced_SGV_data");
+            //Amazfitservice.start("xDrip_synced_SGV_data");  // Temporarily disabled
         }
     }
 

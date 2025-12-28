@@ -129,7 +129,7 @@ import com.eveningoutpost.dexdrip.watch.miband.MiBandService;
 import com.eveningoutpost.dexdrip.watch.thinjam.BlueJay;
 import com.eveningoutpost.dexdrip.watch.thinjam.BlueJayAdapter;
 import com.eveningoutpost.dexdrip.watch.thinjam.BlueJayEntry;
-import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;
+//import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;  // Temporarily disabled
 import com.eveningoutpost.dexdrip.wearintegration.WatchUpdaterService;
 import com.eveningoutpost.dexdrip.webservices.XdripWebService;
 import com.eveningoutpost.dexdrip.xDripWidget;
@@ -1632,10 +1632,10 @@ public class Preferences extends BasePreferenceActivity implements SearchPrefere
                   final Context context = preference.getContext();
                   Boolean enabled = (boolean) newValue;
                    if (enabled==true) {
-                       context.startService(new Intent(context, Amazfitservice.class));
+                       //context.startService(new Intent(context, Amazfitservice.class));  // Temporarily disabled
 
                    }else {
-                       context.stopService(new Intent(context, Amazfitservice.class));
+                       //context.stopService(new Intent(context, Amazfitservice.class));  // Temporarily disabled
                    }
 
                 return true;

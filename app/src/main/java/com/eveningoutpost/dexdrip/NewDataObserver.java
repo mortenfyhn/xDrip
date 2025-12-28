@@ -25,7 +25,7 @@ import com.eveningoutpost.dexdrip.watch.miband.MiBandEntry;
 import com.eveningoutpost.dexdrip.watch.thinjam.BlueJay;
 import com.eveningoutpost.dexdrip.watch.thinjam.BlueJayEntry;
 import com.eveningoutpost.dexdrip.watch.thinjam.BlueJayRemote;
-import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;
+//import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;  // Temporarily disabled
 import com.eveningoutpost.dexdrip.wearintegration.ExternalStatusService;
 import com.eveningoutpost.dexdrip.services.broadcastservice.BroadcastEntry;
 import com.eveningoutpost.dexdrip.wearintegration.WatchUpdaterService;
@@ -104,7 +104,7 @@ public class NewDataObserver {
     // send data to Amazfit if enabled
     private static void sendToAmazfit() {
         if (Pref.getBoolean("pref_amazfit_enable_key", true)) {
-            Amazfitservice.start("xDrip_synced_SGV_data");
+            //Amazfitservice.start("xDrip_synced_SGV_data");  // Temporarily disabled
         }
     }
 

@@ -41,7 +41,7 @@ import com.eveningoutpost.dexdrip.watch.lefun.LeFunEntry;
 import com.eveningoutpost.dexdrip.watch.miband.MiBand;
 import com.eveningoutpost.dexdrip.watch.miband.MiBandEntry;
 import com.eveningoutpost.dexdrip.watch.thinjam.BlueJayEntry;
-import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;
+//import com.eveningoutpost.dexdrip.wearintegration.Amazfitservice;  // Temporarily disabled
 import com.eveningoutpost.dexdrip.services.broadcastservice.BroadcastEntry;
 import com.eveningoutpost.dexdrip.wearintegration.WatchUpdaterService;
 import com.eveningoutpost.dexdrip.services.broadcastservice.Const;
@@ -245,7 +245,7 @@ public class AlertPlayer {
         }
         if (Pref.getBooleanDefaultFalse("pref_amazfit_enable_key")
                 && Pref.getBooleanDefaultFalse("pref_amazfit_BG_alert_enable_key")) {
-            Amazfitservice.start("xDrip_AlarmCancel");
+            //Amazfitservice.start("xDrip_AlarmCancel");  // Temporarily disabled
         }
 
         BroadcastEntry.cancelAlert();
@@ -613,7 +613,7 @@ public class AlertPlayer {
         //send alert to amazfit
         if (Pref.getBooleanDefaultFalse("pref_amazfit_enable_key")
                 && Pref.getBooleanDefaultFalse("pref_amazfit_BG_alert_enable_key")) {
-            Amazfitservice.start("xDrip_Alarm", alert.name, alert.default_snooze);
+            //Amazfitservice.start("xDrip_Alarm", alert.name, alert.default_snooze);  // Temporarily disabled
         }
 
         if (LeFunEntry.areAlertsEnabled() && ActiveBgAlert.currentlyAlerting()) {
