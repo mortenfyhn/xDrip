@@ -82,10 +82,10 @@ public class PebbleDisplayStandard extends PebbleDisplayAbstract {
 
         addBatteryStatusToDictionary(dictionary);
 
-        // Add IoB if available
+        // Add IoB if available (as uint16 milliunits: 5.425 U = 5425)
         Double iob = Treatments.getCurrentIoB();
         if (iob != null) {
-            dictionary.addString(IOB_KEY, String.format("%.2f", iob));
+            dictionary.addUint16(IOB_KEY, (short) Math.round(iob * 1000));
         }
 
         return dictionary;
