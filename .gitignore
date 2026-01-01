@@ -57,3 +57,7 @@ patches/
 *.dll
 *.exe
 *.iml
+
+# Local signing keystore
+keystore.properties
+*.keystore

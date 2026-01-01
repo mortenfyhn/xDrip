@@ -71,6 +71,23 @@ def getLocalProperty(String propertyName) {
 android {
     compileSdk 34
 
+    // Load keystore properties for consistent local signing
+    def keystorePropertiesFile = rootProject.file("keystore.properties")
+    def keystoreProperties = new Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            localDebug {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
 
     configurations.all {
         resolutionStrategy.force 'com.google.code.findbugs:jsr305:1.3.9'
@@ -197,6 +214,9 @@ android {
             //      applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
             debuggable true
+            if (keystorePropertiesFile.exists()) {
+                signingConfig signingConfigs.localDebug
+            }
         }
         dev {
             minifyEnabled false
