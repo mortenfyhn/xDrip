@@ -57,21 +57,24 @@ public class MinimedPumpStateDetector {
     private static final int RED_STOP_SIGN = Color.rgb(223, 5, 82);      // #df0552 - Delivery suspended icon
     private static final int RED_SHIELD_770G = Color.rgb(104, 23, 54);   // #681736 - Alternative red for 770G
     private static final int GREEN_RUNNING_MAN = Color.rgb(2, 255, 0);   // #02ff00 - Temp target icon
+    private static final int BLUE_SHIELD = Color.rgb(3, 201, 247);       // #03c9f7 - SmartGuard shield edge
 
-    // Color matching threshold (Euclidean distance in RGB space, roughly ±20 per component)
-    private static final double COLOR_DISTANCE_THRESHOLD = 35.0;
+    // Color matching threshold (Euclidean distance in RGB space)
+    // Lower value = stricter matching (only very close to exact color)
+    private static final double COLOR_DISTANCE_THRESHOLD = 1.0;
 
     // Adaptive sampling: target ~10k pixels regardless of bitmap size for consistent performance
     private static final int TARGET_SAMPLE_COUNT = 10000;
 
     // Detection thresholds (percentage of sampled pixels)
-    // These were empirically determined from real notification analysis:
-    // - Delivery suspended: ~25% red, ~1% green (anti-aliasing artifacts)
-    // - Temp target: ~0% red, ~26% green
-    // - Transition states: ~0% red, ~1.4% green (below detection threshold)
-    private static final double RED_DETECT_THRESHOLD = 2.0;     // >2% red pixels = delivery suspended
-    private static final double GREEN_DETECT_THRESHOLD = 2.0;   // >2% green pixels = temp target
-    private static final double COLOR_REJECT_THRESHOLD = 1.5;   // <1.5% opposite color confirms state
+    // Empirically determined from real Minimed 780G notification analysis:
+    // - SmartGuard on: 0% red, 0% green, 2.90% blue
+    // - Temp target: 0% red, 2.17% green, 2.60% blue
+    // - Delivery suspended: 2.17% red, 0% green, 2.56% blue
+    // - Transitional images: 0% all colors (sampledCount = 0)
+    private static final double RED_DETECT_THRESHOLD = 1.0;     // >1% red = delivery suspended
+    private static final double GREEN_DETECT_THRESHOLD = 1.0;   // >1% green = temp target
+    private static final double BLUE_DETECT_THRESHOLD = 1.5;    // >1.5% blue = shield present (SmartGuard enabled)
 
     /**
      * Color analysis results from shield icon sampling
@@ -79,11 +82,13 @@ public class MinimedPumpStateDetector {
     public static class ColorCounts {
         public final int redCount;
         public final int greenCount;
+        public final int blueCount;
         public final int sampledCount;
 
-        ColorCounts(int r, int g, int s) {
+        ColorCounts(int r, int g, int b, int s) {
             redCount = r;
             greenCount = g;
+            blueCount = b;
             sampledCount = s;
         }
 
@@ -93,6 +98,10 @@ public class MinimedPumpStateDetector {
 
         public double greenPercent() {
             return sampledCount > 0 ? 100.0 * greenCount / sampledCount : 0.0;
+        }
+
+        public double bluePercent() {
+            return sampledCount > 0 ? 100.0 * blueCount / sampledCount : 0.0;
         }
     }
 
@@ -133,10 +142,11 @@ public class MinimedPumpStateDetector {
                         if (bitmap != null) {
                             shieldColors = analyzeColors(bitmap);
                             if (shieldColors != null) {
-                                UserError.Log.uel(TAG, String.format("Shield icon: %dx%d - %.2f%% red (%d/%d), %.2f%% green (%d/%d)",
+                                UserError.Log.uel(TAG, String.format("Shield icon: %dx%d - %.2f%% red (%d/%d), %.2f%% green (%d/%d), %.2f%% blue (%d/%d)",
                                     bitmap.getWidth(), bitmap.getHeight(),
                                     shieldColors.redPercent(), shieldColors.redCount, shieldColors.sampledCount,
-                                    shieldColors.greenPercent(), shieldColors.greenCount, shieldColors.sampledCount));
+                                    shieldColors.greenPercent(), shieldColors.greenCount, shieldColors.sampledCount,
+                                    shieldColors.bluePercent(), shieldColors.blueCount, shieldColors.sampledCount));
                             }
                         }
                     } catch (Exception e) {
@@ -163,17 +173,22 @@ public class MinimedPumpStateDetector {
             } else {
                 double redPct = shieldColors.redPercent();
                 double greenPct = shieldColors.greenPercent();
+                double bluePct = shieldColors.bluePercent();
 
-                // Use independent thresholds (not priority-based) for robust detection
-                if (redPct > RED_DETECT_THRESHOLD && greenPct < COLOR_REJECT_THRESHOLD) {
-                    detectedState = "Delivery suspended";
-                } else if (greenPct > GREEN_DETECT_THRESHOLD && redPct < COLOR_REJECT_THRESHOLD) {
-                    detectedState = "Temp target";
-                } else if (redPct < COLOR_REJECT_THRESHOLD && greenPct < COLOR_REJECT_THRESHOLD) {
-                    detectedState = "SmartGuard on";
+                // First check if shield is present (blue edge pixels)
+                if (bluePct < BLUE_DETECT_THRESHOLD) {
+                    // No blue shield = SmartGuard disabled
+                    detectedState = "SmartGuard off";
                 } else {
-                    // Ambiguous - both colors present above rejection threshold (rare)
-                    UserError.Log.uel(TAG, String.format("Ambiguous colors (%.2f%% red, %.2f%% green) - keeping previous state", redPct, greenPct));
+                    // Shield present - check status indicators
+                    if (redPct > RED_DETECT_THRESHOLD) {
+                        detectedState = "Delivery suspended";
+                    } else if (greenPct > GREEN_DETECT_THRESHOLD) {
+                        detectedState = "Temp target";
+                    } else {
+                        // Shield present but no red/green indicators = normal operation
+                        detectedState = "SmartGuard on";
+                    }
                 }
             }
 
@@ -196,7 +211,7 @@ public class MinimedPumpStateDetector {
      * @return ColorCounts with red/green pixel counts and percentages
      */
     private static ColorCounts analyzeColors(Bitmap bitmap) {
-        if (bitmap == null) return new ColorCounts(0, 0, 0);
+        if (bitmap == null) return new ColorCounts(0, 0, 0, 0);
 
         try {
             int width = bitmap.getWidth();
@@ -205,7 +220,7 @@ public class MinimedPumpStateDetector {
             // Validate bitmap dimensions
             if (width <= 0 || height <= 0) {
                 UserError.Log.e(TAG, "Invalid bitmap dimensions: " + width + "x" + height);
-                return new ColorCounts(0, 0, 0);
+                return new ColorCounts(0, 0, 0, 0);
             }
 
             int totalPixels = width * height;
@@ -213,7 +228,7 @@ public class MinimedPumpStateDetector {
             // Calculate stride to target ~10k samples (e.g., 516x552=285k pixels, stride~5)
             int stride = (int) Math.max(1, Math.sqrt((double) totalPixels / TARGET_SAMPLE_COUNT));
 
-            int redCount = 0, greenCount = 0, sampledCount = 0;
+            int redCount = 0, greenCount = 0, blueCount = 0, sampledCount = 0;
 
             for (int y = 0; y < height; y += stride) {
                 for (int x = 0; x < width; x += stride) {
@@ -230,13 +245,18 @@ public class MinimedPumpStateDetector {
                         greenCount++;
                     }
 
+                    // Check blue color (SmartGuard shield edge)
+                    if (colorDistance(pixel, BLUE_SHIELD) <= COLOR_DISTANCE_THRESHOLD) {
+                        blueCount++;
+                    }
+
                     sampledCount++;
                 }
             }
 
-            return new ColorCounts(redCount, greenCount, sampledCount);
+            return new ColorCounts(redCount, greenCount, blueCount, sampledCount);
         } catch (Exception e) {
-            return new ColorCounts(0, 0, 0);
+            return new ColorCounts(0, 0, 0, 0);
         }
     }
 
