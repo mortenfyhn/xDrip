@@ -108,8 +108,7 @@ public class PumpStatus {
     public static String getBolusIoBString() {
         final double value = getBolusIoB();
         if (value > -1) {
-            // return "\u231B" + " " + JoH.qs(value, 1) + "U ";
-            return "\u23F3" + "" + JoH.qs(value, 2) + "U ";
+            return "\u23F3" + " " + JoH.qs(value, 3) + " U ";
         } else {
             return "";
         }
