@@ -14,6 +14,7 @@ import com.eveningoutpost.dexdrip.ParakeetHelper;
 import com.eveningoutpost.dexdrip.utilitymodels.BgGraphBuilder;
 import com.eveningoutpost.dexdrip.utilitymodels.Constants;
 import com.eveningoutpost.dexdrip.utilitymodels.Pref;
+import com.eveningoutpost.dexdrip.utilitymodels.PumpStatus;
 import com.eveningoutpost.dexdrip.store.FastStore;
 import com.eveningoutpost.dexdrip.store.KeyStore;
 import com.eveningoutpost.dexdrip.utils.DexCollectionType;
@@ -44,6 +45,7 @@ public abstract class PebbleDisplayAbstract implements PebbleDisplayInterface {
 
     protected static final int TBR_KEY = 12;
     protected static final int IOB_KEY = 13;
+    protected static final int PUMP_STATE_KEY = 14;
 
     protected static final int NO_BLUETOOTH_KEY = 111;
     protected static final int COLLECT_HEALTH_KEY = 112;
@@ -220,6 +222,20 @@ public abstract class PebbleDisplayAbstract implements PebbleDisplayInterface {
             dictionary.addString(NAME_KEY, "Phone");
         }
 
+    }
+
+    public void addIoBToDictionary(PebbleDictionary dictionary) {
+        Double iob = PumpStatus.getBolusIoB();
+        if (iob != null) {
+            // Add IoB as uint16 milli-units (5.425 U = 5425)
+            dictionary.addUint16(IOB_KEY, (short) Math.round(iob * 1000));
+        }
+    }
+
+    public void addPumpStateToDictionary(PebbleDictionary dictionary) {
+        // Always add pump state (empty string if not available)
+        String pumpState = PumpStatus.getPumpState();
+        dictionary.addString(PUMP_STATE_KEY, (pumpState != null && !pumpState.isEmpty()) ? pumpState : "");
     }
 
     public void removeBatteryStatusFromDictionary(PebbleDictionary dictionary) {

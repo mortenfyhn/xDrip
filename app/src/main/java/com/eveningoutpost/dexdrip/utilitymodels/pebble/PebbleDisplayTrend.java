@@ -304,11 +304,8 @@ public class PebbleDisplayTrend extends PebbleDisplayAbstract {
             removeBatteryStatusFromDictionary(this.dictionary);
     }
 
-        // Add IoB if available (as uint16 milliunits: 5.425 U = 5425)
-        Double iob = Treatments.getCurrentIoB();
-        if (iob != null) {
-            this.dictionary.addUint16(IOB_KEY, (short) Math.round(iob * 1000));
-        }
+        addIoBToDictionary(this.dictionary);
+        addPumpStateToDictionary(this.dictionary);
 
         return this.dictionary;
     }
