@@ -20,6 +20,7 @@ public class PumpStatus {
     private static final String PUMP_RESERVOIR = "pump-reservoir";
     private static final String PUMP_BOLUSIOB = "pump-bolusiob";
     private static final String PUMP_BATTERY = "pump-battery";
+    private static final String PUMP_STATE = "pump-state-string";
     private static final String TIME = "-time";
 
     private static String last_json = "";
@@ -36,6 +37,21 @@ public class PumpStatus {
             return PersistentStore.getDouble(name);
         } else {
             return -1;
+        }
+    }
+
+    private static void setStringValue(String name, String value) {
+        if (value == null || value.isEmpty()) return;
+        PersistentStore.setString(name, value);
+        PersistentStore.setLong(name + TIME, JoH.tsl());
+    }
+
+    private static String getStringValue(String name) {
+        final long ts = PersistentStore.getLong(name + TIME);
+        if ((ts > 1503081681000L) && (JoH.msSince(ts) < Constants.MINUTE_IN_MS * 30)) {
+            return PersistentStore.getString(name);
+        } else {
+            return "";
         }
     }
 
@@ -61,6 +77,23 @@ public class PumpStatus {
 
     public static double getBattery() {
         return getValue(PUMP_BATTERY);
+    }
+
+    public static void setPumpState(String value) {
+        setStringValue(PUMP_STATE, value);
+    }
+
+    public static String getPumpState() {
+        return getStringValue(PUMP_STATE);
+    }
+
+    public static String getPumpStateString() {
+        final String state = getStringValue(PUMP_STATE);
+        if (!state.isEmpty()) {
+            return "\n" + state;
+        } else {
+            return "";
+        }
     }
 
     public static String getReservoirString() {
@@ -97,6 +130,7 @@ public class PumpStatus {
             json.put("reservoir", getReservoir());
             json.put("bolusiob", getBolusIoB());
             json.put("battery", getBattery());
+            json.put("statestring", getPumpState());
         } catch (JSONException e) {
             UserError.Log.e(TAG, "Got exception building PumpStatus " + e);
         }
@@ -109,6 +143,7 @@ public class PumpStatus {
             setReservoir(json.getDouble("reservoir"));
             setBolusIoB(json.getDouble("bolusiob"));
             setBattery(json.getDouble("battery"));
+            setPumpState(json.optString("statestring", ""));
         } catch (Exception e) {
             Log.e(TAG, "Got exception processing json msg: " + e + " " + msg);
         }

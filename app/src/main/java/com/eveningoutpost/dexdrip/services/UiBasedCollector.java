@@ -7,8 +7,14 @@ import static com.eveningoutpost.dexdrip.utils.DexCollectionType.getDexCollectio
 import static com.eveningoutpost.dexdrip.xdrip.gs;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -36,6 +42,7 @@ import com.eveningoutpost.dexdrip.models.Sensor;
 import com.eveningoutpost.dexdrip.models.UserError;
 import com.eveningoutpost.dexdrip.utilitymodels.Constants;
 import com.eveningoutpost.dexdrip.utilitymodels.PersistentStore;
+import com.eveningoutpost.dexdrip.utilitymodels.Pref;
 import com.eveningoutpost.dexdrip.utilitymodels.PumpStatus;
 import com.eveningoutpost.dexdrip.utilitymodels.Unitized;
 import com.eveningoutpost.dexdrip.utils.DexCollectionType;
@@ -67,7 +74,11 @@ public class UiBasedCollector extends NotificationListenerService {
     private static final HashSet<String> coOptedPackagesAll = new HashSet<>();
     private static final HashSet<String> companionAppIoBPackages = new HashSet<>();
     private static final HashSet<Pattern> companionAppIoBRegexes = new HashSet<>();
+    private static final HashSet<String> companionAppPumpStatePackages = new HashSet<>();
     private static boolean debug = false;
+    private static final String ACTION_POLL = "com.eveningoutpost.dexdrip.POLL_COMPANION_NOTIFICATION";
+    private static final long POLL_INTERVAL_MS = 30 * 1000; // Poll every 30 seconds
+    private static long lastNotificationReceiveTime = 0;
 
     @VisibleForTesting
     String lastPackage;
@@ -144,6 +155,8 @@ public class UiBasedCollector extends NotificationListenerService {
         companionAppIoBPackages.add("com.insulet.myblue.pdm");
         companionAppIoBPackages.add("com.medtronic.diabetes.minimedmobile.eu");
 
+        companionAppPumpStatePackages.add("com.medtronic.diabetes.minimedmobile.eu");
+
         // The IoB value should be captured into the first match group.
         // English localization of the Omnipod 5 App
         companionAppIoBRegexes.add(Pattern.compile("IOB: ([\\d\\.,]+) U"));
@@ -172,6 +185,10 @@ public class UiBasedCollector extends NotificationListenerService {
         if (companionAppIoBPackages.contains(fromPackage)) {
             processCompanionAppIoBNotification(sbn.getNotification());
         }
+
+        if (companionAppPumpStatePackages.contains(fromPackage)) {
+            processCompanionAppPumpStateNotification(sbn.getNotification());
+        }
     }
 
     private void processCompanionAppIoBNotification(final Notification notification) {
@@ -183,6 +200,16 @@ public class UiBasedCollector extends NotificationListenerService {
             processCompanionAppIoBNotificationCV(notification.contentView);
         } else {
             processCompanionAppIoBNotificationTitle(notification);
+        }
+    }
+
+    private void processCompanionAppPumpStateNotification(final Notification notification) {
+        if (notification == null) {
+            UserError.Log.e(TAG, "Null notification");
+            return;
+        }
+        if (notification.contentView != null) {
+            processCompanionAppPumpStateNotificationCV(notification.contentView);
         }
     }
 
@@ -262,6 +289,133 @@ public class UiBasedCollector extends NotificationListenerService {
     public IBinder onBind(Intent intent) {
         return super.onBind(intent);
     }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        // Start 30-second polling when using companion app data source
+        if (getDexCollectionType() == UiBased) {
+            scheduleNextPoll();
+        }
+
+        if (intent != null && "POLL_NOTIFICATIONS".equals(intent.getAction())) {
+            pollMinimedNotifications();
+        }
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onDestroy() {
+        stopRepeatingPolling();
+        super.onDestroy();
+    }
+
+    /**
+     * Schedule next poll using exact alarm (bypasses Android batching)
+     */
+    private void scheduleNextPoll() {
+        val alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) {
+            UserError.Log.e(TAG, "AlarmManager is null!");
+            return;
+        }
+
+        // Check if we can schedule exact alarms on Android 12+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                UserError.Log.e(TAG, "Cannot schedule exact alarms - permission not granted");
+                return;
+            }
+        }
+
+        val intent = new Intent(ACTION_POLL);
+        intent.setPackage(getPackageName());
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            0,
+            intent,
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                ? PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                : PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        val nextPoll = System.currentTimeMillis() + POLL_INTERVAL_MS;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextPoll, pendingIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextPoll, pendingIntent);
+            }
+        } catch (SecurityException e) {
+            UserError.Log.e(TAG, "SecurityException scheduling alarm: " + e);
+        } catch (Exception e) {
+            UserError.Log.e(TAG, "Exception scheduling alarm: " + e);
+        }
+    }
+
+    /**
+     * Stop repeating polling alarm
+     */
+    private void stopRepeatingPolling() {
+        val alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            val intent = new Intent(ACTION_POLL);
+            intent.setPackage(getPackageName());
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                0,
+                intent,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                    ? PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                    : PendingIntent.FLAG_UPDATE_CURRENT
+            );
+            alarmManager.cancel(pendingIntent);
+        }
+    }
+
+    /**
+     * Actively fetch and process Minimed notifications.
+     * Used by sync scheduler to poll when Android's callbacks are unreliable.
+     */
+    private void pollMinimedNotifications() {
+        UserError.Log.d(TAG, "Polling for Minimed notifications");
+        try {
+            val notifications = getActiveNotifications();
+            if (notifications == null || notifications.length == 0) {
+                UserError.Log.d(TAG, "No active notifications found");
+                return;
+            }
+
+            for (val sbn : notifications) {
+                val pkg = sbn.getPackageName();
+                if (coOptedPackages.contains(pkg) || companionAppIoBPackages.contains(pkg) || companionAppPumpStatePackages.contains(pkg)) {
+                    UserError.Log.d(TAG, "Found Minimed notification: " + pkg);
+                    val receiveTime = System.currentTimeMillis();
+                    lastNotificationReceiveTime = receiveTime;
+
+                    if (coOptedPackages.contains(pkg) && getDexCollectionType() == UiBased) {
+                        if (sbn.isOngoing() || coOptedPackagesAll.contains(pkg)) {
+                            lastPackage = pkg;
+                            processNotification(sbn.getNotification());
+                        }
+                    }
+
+                    if (companionAppIoBPackages.contains(pkg)) {
+                        processCompanionAppIoBNotification(sbn.getNotification());
+                    }
+
+                    if (companionAppPumpStatePackages.contains(pkg)) {
+                        processCompanionAppPumpStateNotification(sbn.getNotification());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            UserError.Log.e(TAG, "Error polling notifications: " + e);
+        } finally {
+            // Reschedule next poll
+            scheduleNextPoll();
+        }
+    }
+
 
     private void processNotification(final Notification notification) {
         if (notification == null) {
@@ -477,6 +631,38 @@ public class UiBasedCollector extends NotificationListenerService {
                     getTextViews(output, (ViewGroup) view);
                 }
             }
+        }
+    }
+
+    /**
+     * Process pump status from Minimed Mobile notification (780G/770G specific)
+     *
+     * Detects pump status (Delivery Suspended, Temp Target, SmartGuard On/Off) by analyzing
+     * the shield icon graphics in the notification. This is specific to Minimed 780G and 770G
+     * pumps using the Minimed Mobile companion app.
+     *
+     * The detection is based on color analysis of the shield icon in the notification.
+     */
+    private void processCompanionAppPumpStateNotificationCV(final RemoteViews cview) {
+        try {
+            String detectedState = MinimedPumpStateDetector.detectPumpState(this, cview);
+            if (detectedState != null) {
+                String previousState = PumpStatus.getPumpState();
+                PumpStatus.setPumpState(detectedState);
+                UserError.Log.uel(TAG, "Minimed pump status: " + detectedState);
+
+                // Trigger immediate Pebble sync if status changed
+                if (!detectedState.equals(previousState)) {
+                    UserError.Log.uel(TAG, "Pump status changed from '" + previousState + "' to '" + detectedState + "', triggering Pebble sync");
+                    if (Pref.getBooleanDefaultFalse("broadcast_to_pebble")) {
+                        JoH.startService(com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleWatchSync.class);
+                        UserError.Log.uel(TAG, "Pebble sync service started for pump status update");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            UserError.Log.e(TAG, "Exception processing pump status notification: " + e.getMessage());
+            UserError.Log.e(TAG, "Stack trace: " + android.util.Log.getStackTraceString(e));
         }
     }
 
