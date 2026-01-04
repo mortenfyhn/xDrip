@@ -160,8 +160,6 @@ public class UiBasedCollector extends NotificationListenerService {
         // The IoB value should be captured into the first match group.
         // English localization of the Omnipod 5 App
         companionAppIoBRegexes.add(Pattern.compile("IOB: ([\\d\\.,]+) U"));
-        // MiniMed Mobile (EU): "Active Insulin" label and "1.234 U" value in separate TextViews
-        companionAppIoBRegexes.add(Pattern.compile("^([\\d\\.]+) U$"));
     }
 
     @Override
@@ -183,7 +181,7 @@ public class UiBasedCollector extends NotificationListenerService {
         }
 
         if (companionAppIoBPackages.contains(fromPackage)) {
-            processCompanionAppIoBNotification(sbn.getNotification());
+            processCompanionAppIoBNotification(fromPackage, sbn.getNotification());
         }
 
         if (companionAppPumpStatePackages.contains(fromPackage)) {
@@ -191,13 +189,13 @@ public class UiBasedCollector extends NotificationListenerService {
         }
     }
 
-    private void processCompanionAppIoBNotification(final Notification notification) {
+    private void processCompanionAppIoBNotification(final String packageName, final Notification notification) {
         if (notification == null) {
             UserError.Log.e(TAG, "Null notification");
             return;
         }
         if (notification.contentView != null) {
-            processCompanionAppIoBNotificationCV(notification.contentView);
+            processCompanionAppIoBNotificationCV(packageName, notification.contentView);
         } else {
             processCompanionAppIoBNotificationTitle(notification);
         }
@@ -227,28 +225,24 @@ public class UiBasedCollector extends NotificationListenerService {
             UserError.Log.e(TAG, "exception in processCompanionAppIoBNotificationTitle: " + e);
         }
     }
-    private void processCompanionAppIoBNotificationCV(final RemoteViews cview) {
+    private void processCompanionAppIoBNotificationCV(final String packageName, final RemoteViews cview) {
         if (cview == null) return;
         val applied = cview.apply(this, null);
         val root = (ViewGroup) applied.getRootView();
         val texts = new ArrayList<TextView>();
         getTextViews(texts, root);
         if (debug) UserError.Log.d(TAG, "Text views: " + texts.size());
+
         Double iob = null;
         try {
-            for (val view : texts) {
-                val tv = (TextView) view;
-                String text = tv.getText() != null ? tv.getText().toString() : "";
-                val desc = tv.getContentDescription() != null ? tv.getContentDescription().toString() : "";
-                if (debug) UserError.Log.d(TAG, "Examining: >" + text + "< : >" + desc + "<");
-                iob = parseIoB(text);
-                if (iob != null) {
-                    break;
-                }
+            if (packageName.startsWith("com.medtronic.diabetes.minimedmobile.")) {
+                iob = extractIoBMinimed(texts);
+            } else {
+                iob = extractIoBGeneric(texts);
             }
 
             if (iob != null) {
-                if (debug) UserError.Log.d(TAG, "Inserting new IoB value extracted from CV: " + iob);
+                if (debug) UserError.Log.d(TAG, "Inserting new IoB value: " + iob);
                 PumpStatus.setBolusIoB(iob);
                 try {
                     IobReading.create(System.currentTimeMillis(), iob);
@@ -267,6 +261,49 @@ public class UiBasedCollector extends NotificationListenerService {
         texts.clear();
     }
 
+    /**
+     * Extract IoB from Minimed Mobile notification (language-independent)
+     * Uses search_badge TextView ID to avoid text matching
+     */
+    private Double extractIoBMinimed(final List<TextView> texts) {
+        for (val tv : texts) {
+            String text = tv.getText() != null ? tv.getText().toString() : "";
+            String resourceName = getResourceName(tv);
+            UserError.Log.uel(TAG, String.format("Minimed TextView [%s] text='%s'", resourceName, text));
+
+            if ("search_badge".equals(resourceName)) {
+                Double iob = parseNumeric(text);
+                if (iob != null) {
+                    UserError.Log.uel(TAG, String.format("Minimed IoB matched in [%s]: %s", resourceName, iob));
+                    return iob;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extract IoB from generic companion app notification using regex patterns
+     */
+    private Double extractIoBGeneric(final List<TextView> texts) {
+        for (val tv : texts) {
+            String text = tv.getText() != null ? tv.getText().toString() : "";
+            if (debug) UserError.Log.d(TAG, "Examining: >" + text + "<");
+            Double iob = parseIoB(text);
+            if (iob != null) return iob;
+        }
+        return null;
+    }
+
+    private String getResourceName(TextView tv) {
+        int viewId = tv.getId();
+        try {
+            return viewId != View.NO_ID ? getResources().getResourceEntryName(viewId) : "NO_ID";
+        } catch (Exception e) {
+            return "id:" + viewId;
+        }
+    }
+
     Double parseIoB(final String value) {
         for (Pattern pattern : companionAppIoBRegexes) {
             Matcher matcher = pattern.matcher(value);
@@ -277,6 +314,17 @@ public class UiBasedCollector extends NotificationListenerService {
         }
 
         return null;
+    }
+
+    /**
+     * Extract numeric value (language-independent)
+     * Matches pattern like "0.700 U" or "0,700 IE"
+     */
+    private Double parseNumeric(final String value) {
+        if (value == null) return null;
+        Pattern numericPattern = Pattern.compile("(\\d+[,.]\\d+)");
+        Matcher matcher = numericPattern.matcher(value);
+        return matcher.find() ? JoH.tolerantParseDouble(matcher.group(1)) : null;
     }
 
     @Override
@@ -400,7 +448,7 @@ public class UiBasedCollector extends NotificationListenerService {
                     }
 
                     if (companionAppIoBPackages.contains(pkg)) {
-                        processCompanionAppIoBNotification(sbn.getNotification());
+                        processCompanionAppIoBNotification(pkg, sbn.getNotification());
                     }
 
                     if (companionAppPumpStatePackages.contains(pkg)) {
