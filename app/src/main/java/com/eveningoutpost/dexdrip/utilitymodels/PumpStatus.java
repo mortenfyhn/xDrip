@@ -51,7 +51,7 @@ public class PumpStatus {
         setValue(PUMP_BOLUSIOB, value);
     }
 
-    private static double getBolusIoB() {
+    public static double getBolusIoB() {
         return getValue(PUMP_BOLUSIOB);
     }
 
