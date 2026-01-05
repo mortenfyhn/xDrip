@@ -345,9 +345,8 @@ public class PebbleDisplayTrendOld extends PebbleDisplayAbstract {
                         .showHighLine(highLine)
                         .showLowLine(lowLine)
                        // .showAxes(true)
-                        .setTinyDots(Pref.getBooleanDefaultFalse("pebble_tiny_dots"))
+                        .setUseLines(true)  // Use lines instead of dots to avoid HelloCharts margins
                         .setShowFiltered(Pref.getBooleanDefaultFalse("pebble_filtered_line"))
-                                //.setSmallDots()
                         .build();
 
                 //encode the trend bitmap as a PNG

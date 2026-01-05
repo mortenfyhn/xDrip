@@ -44,6 +44,7 @@ public class BgSparklineBuilder {
     protected boolean useSmallDots = true;
     protected boolean useTinyDots = false;
     protected boolean showFiltered = false;
+    protected boolean useLines = false;  // Use connecting lines instead of dots for BG data
 
     protected Integer useSpecificDotSize = null;
     protected int backgroundColor = Color.TRANSPARENT;
@@ -127,6 +128,11 @@ public class BgSparklineBuilder {
 
     public BgSparklineBuilder setDotSize(int size) {
         this.useSpecificDotSize = size;
+        return this;
+    }
+
+    public BgSparklineBuilder setUseLines(boolean useLines) {
+        this.useLines = useLines;
         return this;
     }
 
@@ -219,6 +225,19 @@ public class BgSparklineBuilder {
         if (useSpecificDotSize != null) {
             for(Line line: lines)
                 line.setPointRadius(useSpecificDotSize);
+        }
+        if (useLines) {
+            // Override BG data lines to use connecting lines instead of dots (Pebble workaround for margins)
+            lines.get(0).setHasLines(true);  // inRangeLine
+            lines.get(1).setHasLines(true);  // lowLine
+            lines.get(2).setHasLines(true);  // highLine
+            lines.get(0).setHasPoints(false);
+            lines.get(1).setHasPoints(false);
+            lines.get(2).setHasPoints(false);
+            // Set thin stroke width (minimum is 1, scaled by device density)
+            lines.get(0).setStrokeWidth(2);
+            lines.get(1).setStrokeWidth(2);
+            lines.get(2).setStrokeWidth(2);
         }
         LineChartData lineData = new LineChartData(lines);
         if (showAxes) {
