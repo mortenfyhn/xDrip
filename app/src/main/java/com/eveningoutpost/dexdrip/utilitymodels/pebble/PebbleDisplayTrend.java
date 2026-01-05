@@ -80,7 +80,7 @@ public class PebbleDisplayTrend extends PebbleDisplayAbstract {
     private static byte[] chunk;
     private static ByteBuffer buff = null;
     public static int retries = 0;
-    private static final boolean debugPNG = false;
+    private static final boolean debugPNG = true;
     private static boolean didTrend = false;
     private static final ReentrantLock lock = new ReentrantLock();
 
