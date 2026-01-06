@@ -196,9 +196,20 @@ public class BgSparklineBuilder {
     public Bitmap build() {
         List<Line> lines = new ArrayList<>();
         bgGraphBuilder.defaultLines(true); // simple mode
-        lines.add(bgGraphBuilder.inRangeValuesLine());
-        lines.add(bgGraphBuilder.lowValuesLine());
-        lines.add(bgGraphBuilder.highValuesLine());
+        // Split glucose lines to prevent connecting across threshold changes
+        // Threshold = 12 in X units = 6 minutes (readings are every 5 min = 10 in X units)
+        for (Line line : bgGraphBuilder.autoSplitLine(bgGraphBuilder.inRangeValuesLine(), 12)) {
+            lines.add(line);
+        }
+        for (Line line : bgGraphBuilder.autoSplitLine(bgGraphBuilder.lowValuesLine(), 12)) {
+            lines.add(line);
+        }
+        for (Line line : bgGraphBuilder.autoSplitLine(bgGraphBuilder.highValuesLine(), 12)) {
+            lines.add(line);
+        }
+
+        // Track count of BG lines before adding filtered/threshold lines (for useLines below)
+        final int bgLineCount = lines.size();
 
         if (showFiltered) {
             for (Line line : bgGraphBuilder.filteredLines()) {
@@ -228,16 +239,12 @@ public class BgSparklineBuilder {
         }
         if (useLines) {
             // Override BG data lines to use connecting lines instead of dots (Pebble workaround for margins)
-            lines.get(0).setHasLines(true);  // inRangeLine
-            lines.get(1).setHasLines(true);  // lowLine
-            lines.get(2).setHasLines(true);  // highLine
-            lines.get(0).setHasPoints(false);
-            lines.get(1).setHasPoints(false);
-            lines.get(2).setHasPoints(false);
-            // Set thin stroke width (minimum is 1, scaled by device density)
-            lines.get(0).setStrokeWidth(2);
-            lines.get(1).setStrokeWidth(2);
-            lines.get(2).setStrokeWidth(2);
+            // Note: Due to autoSplitLine, we may have multiple segments per category
+            for (int i = 0; i < bgLineCount; i++) {
+                lines.get(i).setHasLines(true);
+                lines.get(i).setHasPoints(false);
+                lines.get(i).setStrokeWidth(2);
+            }
         }
         LineChartData lineData = new LineChartData(lines);
         if (showAxes) {
