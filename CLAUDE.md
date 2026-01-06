@@ -28,9 +28,11 @@ Event Log can be filtered by tag (e.g., `UiBasedCollector`) and exported via lon
 
 ### Building
 
+Ask user before just building.
+
 ```bash
-./gradlew assembleDebug
-# APK: app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleFastDev
+# APK: app/build/outputs/apk/fast/dev/app-fast-dev.apk
 ```
 
 ## Key Files
