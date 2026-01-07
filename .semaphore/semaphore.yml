@@ -10,6 +10,8 @@ agent:
 
 blocks:
   - name: Build APK
+    run:
+      when: branch = 'master'
     task:
       secrets:
         - name: xdrip-keystore
