@@ -1,0 +1,30 @@
+version: v1.0
+name: xDrip Android
+agent:
+  machine:
+    type: f1-standard-2
+    os_image: ubuntu2204
+  containers:
+    - name: main
+      image: registry.semaphoreci.com/android:34
+
+blocks:
+  - name: Build APK
+    run:
+      when: branch = 'master'
+    task:
+      secrets:
+        - name: xdrip-keystore
+      jobs:
+        - name: assembleProdRelease
+          commands:
+            - checkout
+            - cp ~/keystore.properties .
+            - cp ~/xdrip-release.keystore .
+            - git fetch --tags https://github.com/NightscoutFoundation/xDrip.git
+            - cache restore gradle-wrapper
+            - cache restore gradle-cache
+            - ./gradlew --console=plain assembleProdRelease
+            - cache store gradle-wrapper ~/.gradle/wrapper
+            - cache store gradle-cache ~/.gradle/caches
+            - VERSION=$(git describe --tags --always) && artifact push workflow app/build/outputs/apk/prod/release/app-prod-release.apk --destination "xdrip-${VERSION}.apk"
