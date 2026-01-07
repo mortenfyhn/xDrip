@@ -11,13 +11,18 @@ agent:
 blocks:
   - name: Build APK
     task:
+      secrets:
+        - name: xdrip-keystore
       jobs:
         - name: assembleProdRelease
           commands:
             - checkout
+            - cp ~/keystore.properties .
+            - cp ~/xdrip-release.keystore .
+            - git fetch --tags https://github.com/NightscoutFoundation/xDrip.git
             - cache restore gradle-wrapper
             - cache restore gradle-cache
-            - ./gradlew assembleProdRelease
+            - ./gradlew --console=plain assembleProdRelease
             - cache store gradle-wrapper ~/.gradle/wrapper
             - cache store gradle-cache ~/.gradle/caches
-            - artifact push workflow app/build/outputs/apk/prod/release/app-prod-release-unsigned.apk --destination xdrip.apk
+            - VERSION=$(git describe --tags --always) && artifact push workflow app/build/outputs/apk/prod/release/app-prod-release.apk --destination "xdrip-${VERSION}.apk"

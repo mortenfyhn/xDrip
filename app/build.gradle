@@ -71,16 +71,18 @@ def getLocalProperty(String propertyName) {
 android {
     compileSdk 34
 
-    // Load keystore properties for consistent local signing
+    // Load keystore properties for signing (works for both local and CI)
     def keystorePropertiesFile = rootProject.file("keystore.properties")
     def keystoreProperties = new Properties()
-    if (keystorePropertiesFile.exists()) {
+    def hasSigningConfig = keystorePropertiesFile.exists()
+
+    if (hasSigningConfig) {
         keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
-            localDebug {
+        if (hasSigningConfig) {
+            release {
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
                 storeFile file(keystoreProperties['storeFile'])
@@ -202,6 +204,9 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'),
                     'proguard-rules.pro'
+            if (hasSigningConfig) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
             minifyEnabled true
@@ -214,8 +219,8 @@ android {
             //      applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
             debuggable true
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.localDebug
+            if (hasSigningConfig) {
+                signingConfig signingConfigs.release
             }
         }
         dev {
