@@ -1,13 +1,23 @@
 version: v1.0
-name: Initial Pipeline
+name: xDrip Android
 agent:
   machine:
     type: f1-standard-2
     os_image: ubuntu2204
+  containers:
+    - name: main
+      image: registry.semaphoreci.com/android:34
+
 blocks:
-  - name: 'Block #1'
+  - name: Build APK
     task:
       jobs:
-        - name: 'Job #1'
+        - name: assembleProdRelease
           commands:
             - checkout
+            - cache restore gradle-wrapper
+            - cache restore gradle-cache
+            - ./gradlew assembleProdRelease
+            - cache store gradle-wrapper ~/.gradle/wrapper
+            - cache store gradle-cache ~/.gradle/caches
+            - artifact push workflow app/build/outputs/apk/prod/release/app-prod-release-unsigned.apk --destination xdrip.apk
