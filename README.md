@@ -1,3 +1,5 @@
+[![Build Status](https://fyhn.semaphoreci.com/badges/xDrip/branches/master.svg?key=e32daf41-5d64-4bb3-8c59-b72688240d44)](https://fyhn.semaphoreci.com/projects/xDrip)
+
 # Nightscout xDrip+
 > Enhanced personal research version of xDrip
 
