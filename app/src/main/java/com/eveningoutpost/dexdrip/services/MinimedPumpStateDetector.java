@@ -11,8 +11,10 @@ import android.widget.ImageView;
 import android.widget.RemoteViews;
 
 import com.eveningoutpost.dexdrip.models.UserError;
+import com.eveningoutpost.dexdrip.utilitymodels.PumpState;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import lombok.val;
@@ -110,10 +112,9 @@ public class MinimedPumpStateDetector {
      *
      * @param context Android context for resource resolution
      * @param remoteViews The notification RemoteViews
-     * @return Pump state string ("Delivery suspended", "Temp target", "SmartGuard on", "SmartGuard off")
-     *         or null if detection was ambiguous
+     * @return EnumSet of active pump states, or null if detection was ambiguous
      */
-    public static String detectPumpState(Context context, RemoteViews remoteViews) {
+    public static EnumSet<PumpState> detectPumpState(Context context, RemoteViews remoteViews) {
         if (remoteViews == null) return null;
 
         try {
@@ -160,39 +161,33 @@ public class MinimedPumpStateDetector {
                 }
             }
 
-            // Determine state based on shield presence and colors
-            String detectedState = null;
+            EnumSet<PumpState> states = EnumSet.noneOf(PumpState.class);
+
             if (shieldColors == null) {
                 // No shield icon = SmartGuard disabled
-                detectedState = "SmartGuard off";
                 UserError.Log.uel(TAG, "State: SmartGuard off (no shield icon)");
-            } else if (shieldColors.sampledCount == 0) {
+                return states;
+            }
+
+            if (shieldColors.sampledCount == 0) {
                 // No pixels sampled = transitional/empty image, can't detect
                 UserError.Log.uel(TAG, "No pixels sampled - skipping detection (likely transitional image)");
                 return null;
-            } else {
-                double redPct = shieldColors.redPercent();
-                double greenPct = shieldColors.greenPercent();
-                double bluePct = shieldColors.bluePercent();
-
-                // First check if shield is present (blue edge pixels)
-                if (bluePct < BLUE_DETECT_THRESHOLD) {
-                    // No blue shield = SmartGuard disabled
-                    detectedState = "SmartGuard off";
-                } else {
-                    // Shield present - check status indicators
-                    if (redPct > RED_DETECT_THRESHOLD) {
-                        detectedState = "Delivery suspended";
-                    } else if (greenPct > GREEN_DETECT_THRESHOLD) {
-                        detectedState = "Temp target";
-                    } else {
-                        // Shield present but no red/green indicators = normal operation
-                        detectedState = "SmartGuard on";
-                    }
-                }
             }
 
-            return detectedState;
+            if (shieldColors.bluePercent() > BLUE_DETECT_THRESHOLD) {
+                states.add(PumpState.SMARTGUARD_ON);
+            }
+
+            if (shieldColors.redPercent() > RED_DETECT_THRESHOLD) {
+                states.add(PumpState.DELIVERY_SUSPENDED);
+            }
+
+            if (shieldColors.greenPercent() > GREEN_DETECT_THRESHOLD) {
+                states.add(PumpState.TEMPORARY_TARGET);
+            }
+
+            return states;
 
         } catch (Exception e) {
             UserError.Log.e(TAG, "Exception detecting pump state: " + e.getMessage());

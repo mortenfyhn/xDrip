@@ -10,6 +10,8 @@ import com.eveningoutpost.dexdrip.models.UserError;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.EnumSet;
+
 /**
  * Created by jamorham on 18/08/2017.
  */
@@ -20,7 +22,7 @@ public class PumpStatus {
     private static final String PUMP_RESERVOIR = "pump-reservoir";
     private static final String PUMP_BOLUSIOB = "pump-bolusiob";
     private static final String PUMP_BATTERY = "pump-battery";
-    private static final String PUMP_STATE = "pump-state-string";
+    private static final String PUMP_STATE_FLAGS = "pump-state-flags";
     private static final String TIME = "-time";
 
     private static String last_json = "";
@@ -37,21 +39,6 @@ public class PumpStatus {
             return PersistentStore.getDouble(name);
         } else {
             return -1;
-        }
-    }
-
-    private static void setStringValue(String name, String value) {
-        if (value == null || value.isEmpty()) return;
-        PersistentStore.setString(name, value);
-        PersistentStore.setLong(name + TIME, JoH.tsl());
-    }
-
-    private static String getStringValue(String name) {
-        final long ts = PersistentStore.getLong(name + TIME);
-        if ((ts > 1503081681000L) && (JoH.msSince(ts) < Constants.MINUTE_IN_MS * 30)) {
-            return PersistentStore.getString(name);
-        } else {
-            return "";
         }
     }
 
@@ -79,21 +66,56 @@ public class PumpStatus {
         return getValue(PUMP_BATTERY);
     }
 
-    public static void setPumpState(String value) {
-        setStringValue(PUMP_STATE, value);
-    }
-
-    public static String getPumpState() {
-        return getStringValue(PUMP_STATE);
-    }
-
-    public static String getPumpStateString() {
-        final String state = getStringValue(PUMP_STATE);
-        if (!state.isEmpty()) {
-            return "\n" + state;
-        } else {
-            return "";
+    public static void setPumpStates(EnumSet<PumpState> states) {
+        if (states == null) return;
+        int flags = 0;
+        for (PumpState state : states) {
+            flags |= (1 << state.ordinal());
         }
+        setValue(PUMP_STATE_FLAGS, flags);
+    }
+
+    public static EnumSet<PumpState> getPumpStates() {
+        int flags = (int) getValue(PUMP_STATE_FLAGS);
+        EnumSet<PumpState> states = EnumSet.noneOf(PumpState.class);
+        if (flags < 0) return states;
+        for (PumpState state : PumpState.values()) {
+            if ((flags & (1 << state.ordinal())) != 0) {
+                states.add(state);
+            }
+        }
+        return states;
+    }
+
+    /**
+     * Get pump state as bitfield for Pebble.
+     * Bit 0 = SMARTGUARD_ON, Bit 1 = DELIVERY_SUSPENDED, Bit 2 = TEMPORARY_TARGET
+     * Returns -1 if no valid data.
+     */
+    public static int getPumpStateFlags() {
+        return (int) getValue(PUMP_STATE_FLAGS);
+    }
+
+    /**
+     * Human-readable pump state string with priority logic:
+     * 1. SmartGuard off (empty set) -> "SmartGuard off"
+     * 2. Suspended -> "Suspended"
+     * 3. Temp target -> "Temp target"
+     * 4. Normal (SmartGuard on, nothing else) -> ""
+     */
+    public static String getPumpStateString() {
+        EnumSet<PumpState> states = getPumpStates();
+
+        if (!states.contains(PumpState.SMARTGUARD_ON)) {
+            return "\nSmartGuard off";
+        }
+        if (states.contains(PumpState.DELIVERY_SUSPENDED)) {
+            return "\nSuspended";
+        }
+        if (states.contains(PumpState.TEMPORARY_TARGET)) {
+            return "\nTemp target";
+        }
+        return "";
     }
 
     public static String getReservoirString() {
@@ -129,7 +151,7 @@ public class PumpStatus {
             json.put("reservoir", getReservoir());
             json.put("bolusiob", getBolusIoB());
             json.put("battery", getBattery());
-            json.put("statestring", getPumpState());
+            json.put("stateflags", getPumpStateFlags());
         } catch (JSONException e) {
             UserError.Log.e(TAG, "Got exception building PumpStatus " + e);
         }
@@ -142,7 +164,7 @@ public class PumpStatus {
             setReservoir(json.getDouble("reservoir"));
             setBolusIoB(json.getDouble("bolusiob"));
             setBattery(json.getDouble("battery"));
-            setPumpState(json.optString("statestring", ""));
+            setValue(PUMP_STATE_FLAGS, json.optInt("stateflags", 0));
         } catch (Exception e) {
             Log.e(TAG, "Got exception processing json msg: " + e + " " + msg);
         }

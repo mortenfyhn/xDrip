@@ -49,10 +49,13 @@ import com.eveningoutpost.dexdrip.utils.DexCollectionType;
 import com.eveningoutpost.dexdrip.xdrip;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.eveningoutpost.dexdrip.utilitymodels.PumpState;
 
 import lombok.val;
 
@@ -645,15 +648,15 @@ public class UiBasedCollector extends NotificationListenerService {
      */
     private void processCompanionAppPumpStateNotificationCV(final RemoteViews cview) {
         try {
-            String detectedState = MinimedPumpStateDetector.detectPumpState(this, cview);
-            if (detectedState != null) {
-                String previousState = PumpStatus.getPumpState();
-                PumpStatus.setPumpState(detectedState);
-                UserError.Log.uel(TAG, "Minimed pump status: " + detectedState);
+            EnumSet<PumpState> states = MinimedPumpStateDetector.detectPumpState(this, cview);
+            if (states != null) {
+                EnumSet<PumpState> previousStates = PumpStatus.getPumpStates();
+                PumpStatus.setPumpStates(states);
+                UserError.Log.uel(TAG, "Minimed pump status: " + states);
 
                 // Trigger immediate Pebble sync if status changed
-                if (!detectedState.equals(previousState)) {
-                    UserError.Log.uel(TAG, "Pump status changed from '" + previousState + "' to '" + detectedState + "', triggering Pebble sync");
+                if (!states.equals(previousStates)) {
+                    UserError.Log.uel(TAG, "Pump status changed from " + previousStates + " to " + states + ", triggering Pebble sync");
                     if (Pref.getBooleanDefaultFalse("broadcast_to_pebble")) {
                         JoH.startService(com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleWatchSync.class);
                         UserError.Log.uel(TAG, "Pebble sync service started for pump status update");

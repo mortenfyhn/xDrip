@@ -233,9 +233,12 @@ public abstract class PebbleDisplayAbstract implements PebbleDisplayInterface {
     }
 
     public void addPumpStateToDictionary(PebbleDictionary dictionary) {
-        // Always add pump state (empty string if not available)
-        String pumpState = PumpStatus.getPumpState();
-        dictionary.addString(PUMP_STATE_KEY, (pumpState != null && !pumpState.isEmpty()) ? pumpState : "");
+        // Send pump state as uint8 bitfield
+        // Bit 0 = SMARTGUARD_ON, Bit 1 = DELIVERY_SUSPENDED, Bit 2 = TEMPORARY_TARGET
+        int flags = PumpStatus.getPumpStateFlags();
+        if (flags >= 0) {
+            dictionary.addUint8(PUMP_STATE_KEY, (byte) flags);
+        }
     }
 
     public void removeBatteryStatusFromDictionary(PebbleDictionary dictionary) {
