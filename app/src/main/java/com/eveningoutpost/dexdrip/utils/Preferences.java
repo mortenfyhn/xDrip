@@ -114,13 +114,8 @@ import com.eveningoutpost.dexdrip.utilitymodels.ShotStateStore;
 import com.eveningoutpost.dexdrip.utilitymodels.SpeechUtil;
 import com.eveningoutpost.dexdrip.utilitymodels.UpdateActivity;
 import com.eveningoutpost.dexdrip.utilitymodels.WholeHouse;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleUtil;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleWatchSync;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.watchface.InstallPebbleClassicTrendWatchface;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.watchface.InstallPebbleSnoozeControlApp;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.watchface.InstallPebbleTrendClayWatchFace;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.watchface.InstallPebbleTrendWatchFace;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.watchface.InstallPebbleWatchFace;
+import com.eveningoutpost.dexdrip.watch.pebble.PebbleService;
+import com.eveningoutpost.dexdrip.watch.pebble.PebbleWatchState;
 import com.eveningoutpost.dexdrip.utils.framework.IncomingCallsReceiver;
 import com.eveningoutpost.dexdrip.watch.lefun.LeFunEntry;
 import com.eveningoutpost.dexdrip.watch.miband.MiBand;
@@ -697,10 +692,6 @@ public class Preferences extends BasePreferenceActivity implements SearchPrefere
     private static void refreshProfileRatios() {
         profile_carb_ratio_default.setTitle(format_carb_ratio(profile_carb_ratio_default.getTitle().toString(), ProfileEditor.minMaxCarbs(ProfileEditor.loadData(false))));
         profile_insulin_sensitivity_default.setTitle(format_insulin_sensitivity(profile_insulin_sensitivity_default.getTitle().toString(), ProfileEditor.minMaxSens(ProfileEditor.loadData(false))));
-    }
-
-    private static void restartPebble() {
-        xdrip.getAppContext().startService(new Intent(xdrip.getAppContext(), PebbleWatchSync.class));
     }
 
     private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
@@ -1558,29 +1549,38 @@ public class Preferences extends BasePreferenceActivity implements SearchPrefere
             final EditTextPreference transmitterId = (EditTextPreference) findPreference("dex_txid");
            // final Preference closeGatt = findPreference("close_gatt_on_ble_disconnect");
 
-            final Preference pebbleSync2 = findPreference("broadcast_to_pebble_type");
-            final Preference pebbleSync1 = findPreference("broadcast_to_pebble");
-
-            // Pebble Trend - START
-            final Preference watchIntegration = findPreference("watch_integration");
-            final PreferenceCategory watchCategory = (PreferenceCategory) findPreference("pebble_integration");
-            //final ListPreference pebbleType = (ListPreference) findPreference("watch_integration");
-            final Preference pebbleTrend = findPreference("pebble_display_trend");
-            final Preference pebbleFilteredLine = findPreference("pebble_filtered_line");
-            final Preference pebbleHighLine = findPreference("pebble_high_line");
-            final Preference pebbleLowLine = findPreference("pebble_low_line");
-            final Preference pebbleTrendPeriod = findPreference("pebble_trend_period");
-            final Preference pebbleDelta = findPreference("pebble_show_delta");
-            final Preference pebbleDeltaUnits = findPreference("pebble_show_delta_units");
-            final Preference pebbleShowArrows = findPreference("pebble_show_arrows");
-            final Preference pebbleVibrateNoSignal = findPreference("pebble_vibrate_no_signal");
-            final Preference pebbleVibrateNoBluetooth = findPreference("pebble_vibrate_no_bluetooth");
-            final Preference pebbleTinyDots = findPreference("pebble_tiny_dots");
-            final EditTextPreference pebbleSpecialValue = (EditTextPreference) findPreference("pebble_special_value");
-            bindPreferenceSummaryToValueAndEnsureNumeric(pebbleSpecialValue);
-            final Preference pebbleSpecialText = findPreference("pebble_special_text");
-            bindPreferenceSummaryToValue(pebbleSpecialText);
-            // Pebble Trend - END
+            // Pebble integration
+            try {
+                final Preference pebbleEnabled = findPreference("pebble_integration_enabled");
+                if (pebbleEnabled != null) {
+                    pebbleEnabled.setOnPreferenceChangeListener((preference, newValue) -> {
+                        if ((Boolean) newValue) {
+                            // Register receiver and send data when enabled
+                            PebbleService.registerReceiver();
+                            PebbleService.sendData();
+                        } else {
+                            PebbleService.unregisterReceiver();
+                        }
+                        return true;
+                    });
+                }
+                final Preference pebbleUuid = findPreference("pebble_watchface_uuid");
+                if (pebbleUuid != null) {
+                    pebbleUuid.setOnPreferenceChangeListener((preference, newValue) -> {
+                        // Save UUID to prefs now (listener fires before Android saves it,
+                        // but registerReceiver needs to read the new UUID from prefs)
+                        PebbleWatchState.setWatchfaceUuid((String) newValue);
+                        // Re-register receiver with new UUID and send data
+                        if (PebbleWatchState.isEnabled()) {
+                            PebbleService.registerReceiver();
+                            PebbleService.sendData();
+                        }
+                        return true;
+                    });
+                }
+            } catch (Exception e) {
+                // ignore
+            }
 
             bindPreferenceSummaryToValue(findPreference("node_wearG5"));//KS
             bindPreferenceSummaryToValue(findPreference("wear_logs_prefix"));
@@ -2158,21 +2158,6 @@ public class Preferences extends BasePreferenceActivity implements SearchPrefere
                 update_channel.setEntries(getResources().getStringArray(R.array.UpdateChannelDetailE));
             }
 
-            final DecimalFormat df = new DecimalFormat("#.#");
-
-            if (this.prefs.getString("units", "mgdl").compareTo("mmol") != 0) {
-                df.setMaximumFractionDigits(0);
-                pebbleSpecialValue.setDefaultValue("99");
-                if (pebbleSpecialValue.getText().compareTo("5.5") == 0) {
-                    pebbleSpecialValue.setText(df.format(Double.valueOf(pebbleSpecialValue.getText()) * Constants.MMOLL_TO_MGDL));
-                }
-            } else {
-                df.setMaximumFractionDigits(1);
-                pebbleSpecialValue.setDefaultValue("5.5");
-                if (pebbleSpecialValue.getText().compareTo("99") == 0) {
-                    pebbleSpecialValue.setText(df.format(Double.valueOf(pebbleSpecialValue.getText()) / Constants.MMOLL_TO_MGDL));
-                }
-            }
 
             try {
                 findPreference("calibration_notifications").setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
@@ -2251,211 +2236,6 @@ public class Preferences extends BasePreferenceActivity implements SearchPrefere
             } catch (Exception e) {
                 //
             }
-
-            // Pebble Trend -- START
-
-            int currentPebbleSync = PebbleUtil.getCurrentPebbleSyncType();
-
-            if (currentPebbleSync == 1) {
-                watchCategory.removePreference(pebbleSpecialValue);
-                watchCategory.removePreference(pebbleSpecialText);
-            }
-
-            if ((currentPebbleSync != 3) && (currentPebbleSync != 4) && (currentPebbleSync != 5)) {
-                watchCategory.removePreference(pebbleTrend);
-                watchCategory.removePreference(pebbleFilteredLine);
-                watchCategory.removePreference(pebbleTinyDots);
-                watchCategory.removePreference(pebbleHighLine);
-                watchCategory.removePreference(pebbleLowLine);
-                watchCategory.removePreference(pebbleTrendPeriod);
-                watchCategory.removePreference(pebbleTrendPeriod);
-                watchCategory.removePreference(pebbleDelta);
-                watchCategory.removePreference(pebbleDeltaUnits);
-                watchCategory.removePreference(pebbleShowArrows);
-                watchCategory.removePreference(pebbleVibrateNoSignal);
-            }
-
-            // master switch for pebble
-            pebbleSync1.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    final Context context = preference.getContext();
-                    if ((Boolean) newValue) {
-
-
-                        pebbleType = PebbleUtil.getCurrentPebbleSyncType(PreferenceManager.getDefaultSharedPreferences(context).getString("broadcast_to_pebble_type", "1"));
-
-                        // install watchface
-                        installPebbleWatchface(pebbleType, preference);
-                    }
-                    // start/stop service
-                    enablePebble(pebbleType, (Boolean) newValue, context);
-                    return true;
-                }
-            });
-
-
-            // Pebble Trend (just major change)
-            pebbleSync2.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    final Context context = preference.getContext();
-
-                    int oldPebbleType = PebbleUtil.getCurrentPebbleSyncType();
-                    int pebbleType = PebbleUtil.getCurrentPebbleSyncType(newValue);
-
-                    // install watchface
-                    installPebbleWatchface(pebbleType, preference);
-
-                    // start/stop service
-                    enablePebble(pebbleType, getBooleanPreferenceViaContextWithoutException(context,"broadcast_to_pebble",false), context);
-
-                    // configuration options
-                    if (oldPebbleType != pebbleType) {
-
-                        // REMOVE ALL
-                        if (oldPebbleType == 2) {
-                            watchCategory.removePreference(pebbleSpecialValue);
-                            watchCategory.removePreference(pebbleSpecialText);
-                        } else {
-                            watchCategory.removePreference(pebbleTrend);
-                            watchCategory.removePreference(pebbleFilteredLine);
-                            watchCategory.removePreference(pebbleTinyDots);
-                            watchCategory.removePreference(pebbleHighLine);
-                            watchCategory.removePreference(pebbleLowLine);
-                            watchCategory.removePreference(pebbleTrendPeriod);
-                            watchCategory.removePreference(pebbleDelta);
-                            watchCategory.removePreference(pebbleDeltaUnits);
-                            watchCategory.removePreference(pebbleShowArrows);
-                            watchCategory.removePreference(pebbleSpecialValue);
-                            watchCategory.removePreference(pebbleSpecialText);
-                            watchCategory.removePreference(pebbleVibrateNoSignal);
-                            watchCategory.removePreference(pebbleVibrateNoBluetooth);
-                        }
-
-                        // Add New one
-                        if ((pebbleType == 3) || (pebbleType == 4) || (pebbleType == 5)) {
-                            watchCategory.addPreference(pebbleTrend);
-                            watchCategory.addPreference(pebbleFilteredLine);
-                            watchCategory.addPreference(pebbleTinyDots);
-                            watchCategory.addPreference(pebbleHighLine);
-                            watchCategory.addPreference(pebbleLowLine);
-                            watchCategory.addPreference(pebbleTrendPeriod);
-                            watchCategory.addPreference(pebbleDelta);
-                            watchCategory.addPreference(pebbleDeltaUnits);
-                            watchCategory.addPreference(pebbleShowArrows);
-                            watchCategory.addPreference(pebbleVibrateNoSignal);
-                            watchCategory.addPreference(pebbleVibrateNoBluetooth);
-                        }
-
-                        if (oldPebbleType != 1) {
-                            watchCategory.addPreference(pebbleSpecialValue);
-                            watchCategory.addPreference(pebbleSpecialText);
-                        }
-
-                    }
-
-                    return true;
-                }
-            });
-
-            // TODO reduce code duplication more
-            pebbleTrend.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-            pebbleFilteredLine.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-
-            pebbleHighLine.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();;
-                    return true;
-                }
-            });
-
-            pebbleLowLine.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-            pebbleTrendPeriod.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-            pebbleDelta.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-            pebbleDeltaUnits.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-            pebbleShowArrows.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-            pebbleTinyDots.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-            pebbleVibrateNoBluetooth.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-            // TODO this attaches to the wrong named instance of use_pebble_health - until restructured so that there is only one instance
-            findPreference("use_pebble_health").setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-            findPreference("pebble_show_bwp").setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    restartPebble();
-                    return true;
-                }
-            });
-
-            // Pebble Trend -- END
 
             bindWidgetUpdater();
 
@@ -2872,113 +2652,6 @@ public class Preferences extends BasePreferenceActivity implements SearchPrefere
             AlertDialog alert = builder.create();
             alert.show();
         }
-
-        private void installPebbleWatchface(final int pebbleType, Preference preference) {
-
-            final Context context = preference.getContext();
-
-            if (pebbleType == 1)
-                return;
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-
-            builder.setTitle("Pebble Install");
-
-            switch (pebbleType)
-                {
-                    case 2:
-                        builder.setMessage("Install Standard Pebble Watchface?");
-                        break;
-                    case 3:
-                        builder.setMessage("Install Pebble Trend Watchface?");
-                        break;
-                    case 4:
-                        builder.setMessage("Install Pebble Classic Trend Watchface?");
-                        break;
-                    case 5:
-                        builder.setMessage("Install Pebble Clay Trend Watchface?");
-                        break;
-                }
-
-
-            builder.setPositiveButton(gs(R.string.yes), new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-
-                    switch (pebbleType) {
-                        case 2:
-                            context.startActivity(new Intent(context, InstallPebbleWatchFace.class));
-                            break;
-                        case 3:
-                            context.startActivity(new Intent(context, InstallPebbleTrendWatchFace.class));
-                            break;
-                        case 4:
-                            context.startActivity(new Intent(context, InstallPebbleClassicTrendWatchface.class));
-                            break;
-                        case 5:
-                            context.startActivity(new Intent(context, InstallPebbleTrendClayWatchFace.class));
-                            break;
-                    }
-
-                    JoH.runOnUiThreadDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                            builder.setTitle("Snooze Control Install");
-                            builder.setMessage("Install Pebble Snooze Button App?");
-                            // inner
-                            builder.setPositiveButton(gs(R.string.yes), new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                    context.startActivity(new Intent(context, InstallPebbleSnoozeControlApp.class));
-                                }
-                            });
-                            builder.setNegativeButton(gs(R.string.no), new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            });
-                            AlertDialog alert = builder.create();
-                            alert.show();
-                        }},3000);
-                // outer
-                }});
-
-            builder.setNegativeButton(gs(R.string.no), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
-
-            AlertDialog alert = builder.create();
-            alert.show();
-        }
-
-        private static int pebbleType = 1;
-        private void enablePebble(int newValueInt, boolean enabled, Context context) {
-            Log.d(TAG,"enablePebble called with: "+newValueInt+" "+enabled);
-            if (pebbleType == 1) {
-                if (enabled && (newValueInt != 1)) {
-                    context.stopService(new Intent(context, PebbleWatchSync.class));
-                    context.startService(new Intent(context, PebbleWatchSync.class));
-                    Log.d(TAG,"Starting pebble service type: "+newValueInt);
-                }
-            } else {
-                if (!enabled || (newValueInt == 1)) {
-                    context.stopService(new Intent(context, PebbleWatchSync.class));
-                    Log.d(TAG, "Stopping pebble service type: " + newValueInt);
-                }
-
-
-            }
-
-            pebbleType = enabled ? newValueInt : 1;
-            PebbleWatchSync.setPebbleType(pebbleType);
-
-        }
-
 
         private void setupBarcodeConfigScanner() {
             findPreference("auto_configure").setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {

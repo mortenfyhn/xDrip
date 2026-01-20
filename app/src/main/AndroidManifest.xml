@@ -440,21 +440,6 @@
             android:configChanges="orientation|screenSize"
             android:label="@string/title_activity_calibration_check_in" />
         <activity
-            android:name=".utilitymodels.pebble.watchface.InstallPebbleWatchFace"
-            android:label="@string/install_pebble_watchface" />
-        <activity
-            android:name=".utilitymodels.pebble.watchface.InstallPebbleTrendWatchFace"
-            android:label="@string/install_pebble_trend_watchface" />
-        <activity
-            android:name=".utilitymodels.pebble.watchface.InstallPebbleClassicTrendWatchface"
-            android:label="@string/install_pebble_classic_trend_watchface" />
-        <activity
-            android:name=".utilitymodels.pebble.watchface.InstallPebbleTrendClayWatchFace"
-            android:label="Install Pebble Clay Watchface" />
-        <activity
-            android:name=".utilitymodels.pebble.watchface.InstallPebbleSnoozeControlApp"
-            android:label="@string/install_pebble_snooze_control_app" />
-        <activity
             android:name=".UsbConnectedActivity"
             android:label="@string/title_activity_usb_connected">
             <intent-filter>
@@ -567,11 +552,6 @@
         <service
             android:name=".utilitymodels.Notifications"
             android:exported="false" />
-        <service
-            android:name=".utilitymodels.pebble.PebbleWatchSync"
-            android:enabled="true"
-            android:exported="true"
-            android:foregroundServiceType="connectedDevice|location" />
         <service
             android:name=".services.DailyIntentService"
             android:exported="false" />

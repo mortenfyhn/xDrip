@@ -24,8 +24,6 @@ import com.eveningoutpost.dexdrip.utilitymodels.Inevitable;
 import com.eveningoutpost.dexdrip.utilitymodels.NanoStatus;
 import com.eveningoutpost.dexdrip.utilitymodels.Notifications;
 import com.eveningoutpost.dexdrip.utilitymodels.Pref;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleUtil;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleWatchSync;
 import com.eveningoutpost.dexdrip.healthconnect.HealthConnectEntry;
 import com.eveningoutpost.dexdrip.insulin.inpen.InPenEntry;
 import com.eveningoutpost.dexdrip.ui.LockScreenWallPaper;
@@ -63,16 +61,6 @@ public class MissedReadingService extends IntentService {
             Log.d(TAG, "MissedReadingService onHandleIntent"); // test debug log
 
             final long stale_millis = Home.stale_data_millis();
-
-
-            // send to pebble
-            if (Pref.getBoolean("broadcast_to_pebble", false) && (PebbleUtil.getCurrentPebbleSyncType() != 1) && !BgReading.last_within_millis(stale_millis)) {
-                if (JoH.ratelimit("peb-miss", 120)) {
-                    // TODO replace ratelimit with Inevitable.task?
-                    JoH.startService(PebbleWatchSync.class);
-                }
-                // update pebble even when we don't have data to ensure missed readings show
-            }
 
             if (LeFunEntry.isEnabled() && (!BgReading.last_within_millis(stale_millis))) {
                 LeFun.showLatestBG();

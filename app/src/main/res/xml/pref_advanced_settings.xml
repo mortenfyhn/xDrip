@@ -96,123 +96,17 @@
                 android:title="@string/pebble_integration">
                 <SwitchPreference
                     android:defaultValue="false"
-                    android:key="broadcast_to_pebble"
+                    android:key="pebble_integration_enabled"
                     android:summary="@string/send_data_to_pebble_watchface"
                     android:switchTextOff="@string/short_off_text_for_switches"
                     android:switchTextOn="@string/short_on_text_for_switches"
-                    android:title="@string/pebble_watch_integration" />
-                <ListPreference
-                    android:defaultValue="2"
-                    android:dependency="broadcast_to_pebble"
-                    android:entries="@array/SendToPebbleChoice"
-                    android:entryValues="@array/SendToPebbleChoiceValues"
-                    android:key="broadcast_to_pebble_type"
-                    android:summary="@string/standard_or_trend_pebble_watchface"
-                    android:title="@string/choose_pebble_watchface" />
-                <CheckBoxPreference
-                    android:defaultValue="true"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_display_trend"
-                    android:summary="@string/pref_summary_display_trend"
-                    android:title="@string/pref_pebble_display_trend" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_filtered_line"
-                    android:summary="@string/summary_Also_show_the_filtered_data_on_the_trend"
-                    android:title="@string/display_filtered_line" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_tiny_dots"
-                    android:summary="@string/show_tiny_dots_instead"
-                    android:title="@string/use_tiny_dots" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_high_line"
-                    android:summary="@string/displays_the_high_line"
-                    android:title="@string/pref_pebble_display_high_line" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_low_line"
-                    android:summary="@string/displays_the_low_line"
-                    android:title="@string/pref_pebble_display_low_line" />
-                <ListPreference
-                    android:defaultValue="3"
-                    android:dependency="broadcast_to_pebble"
-                    android:entries="@array/PebbleTrendPeriods"
-                    android:entryValues="@array/PebbleTrendPeriodValues"
-                    android:key="pebble_trend_period"
-                    android:summary="@string/set_the_trend_period_to_display"
-                    android:title="@string/trend_time_period" />
-                <CheckBoxPreference
-                    android:defaultValue="true"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_show_delta"
-                    android:summary="@string/displays_the_delta_value"
-                    android:title="@string/display_delta" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_show_delta_units"
-                    android:summary="@string/displays_the_delta_units"
-                    android:title="@string/display_delta_units" />
-                <CheckBoxPreference
-                    android:defaultValue="true"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_show_arrows"
-                    android:summary="@string/displays_the_slope_arrows"
-                    android:title="@string/display_slope_arrows" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:key="pebble_vibe_alerts"
-                    android:summary="@string/watch_vibrate_active_alerts"
-                    android:title="@string/vibrate_alerts" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_vibrate_no_signal"
-                    android:summary="@string/vibrate_watch_to_alert_no_data"
-                    android:title="@string/vibrate_when_missed_signal" />
-                <CheckBoxPreference
-                    android:defaultValue="true"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_vibrate_no_bluetooth"
-                    android:summary="@string/vibrate_watch_to_alert_no_bluetooth"
-                    android:title="@string/vibrate_when_no_bluetooth" />
-                <CheckBoxPreference
-                    android:defaultValue="false"
-                    android:key="pebble_show_bwp"
-                    android:summary="@string/summary_Show_Bolus_Wizard_Preview_Insulin_value_on_watch_when_appropriate"
-                    android:title="@string/title_Display_BWP_Insulin" />
+                    android:title="@string/pebble_enable" />
                 <EditTextPreference
-                    android:defaultValue="99"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_special_value"
-                    android:summary="@string/special_glucose_value_to_display_message"
-                    android:title="@string/special_value" />
-                <EditTextPreference
-                    android:defaultValue="BAZINGA!"
-                    android:dependency="broadcast_to_pebble"
-                    android:key="pebble_special_text"
-                    android:summary="@string/message_to_display_when_bgl_hits"
-                    android:title="@string/text_to_display_when_hitting_special_value" />
-            </PreferenceCategory>
-
-            <PreferenceCategory
-                android:key="pebble_installers"
-                android:title="@string/install_pebble_apps">
-                <Preference
-                    android:key="install_pebble_snooze_control"
-                    android:summary="@string/attach_to_button"
-                    android:title="@string/install_pebble_snooze_control_app">
-                    <intent
-                        android:action="android.intent.action.MAIN"
-                        android:targetClass="com.eveningoutpost.dexdrip.utilitymodels.pebble.watchface.InstallPebbleSnoozeControlApp"
-                        android:targetPackage="@string/local_target_package" />
-                </Preference>
+                    android:defaultValue=""
+                    android:dependency="pebble_integration_enabled"
+                    android:key="pebble_watchface_uuid"
+                    android:summary="@string/pebble_watchface_uuid_summary"
+                    android:title="@string/pebble_watchface_uuid_title" />
             </PreferenceCategory>
         </PreferenceScreen>
         <PreferenceScreen

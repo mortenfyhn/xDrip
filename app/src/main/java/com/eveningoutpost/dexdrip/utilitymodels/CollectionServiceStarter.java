@@ -18,8 +18,8 @@ import com.eveningoutpost.dexdrip.services.DoNothingService;
 import com.eveningoutpost.dexdrip.services.G5CollectionService;
 import com.eveningoutpost.dexdrip.services.Ob1G5CollectionService;
 import com.eveningoutpost.dexdrip.services.WifiCollectionService;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleUtil;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleWatchSync;
+import com.eveningoutpost.dexdrip.watch.pebble.PebbleService;
+import com.eveningoutpost.dexdrip.watch.pebble.PebbleWatchState;
 import com.eveningoutpost.dexdrip.utils.DexCollectionType;
 import com.eveningoutpost.dexdrip.wearintegration.WatchUpdaterService;
 import com.eveningoutpost.dexdrip.xdrip;
@@ -342,8 +342,9 @@ public class CollectionServiceStarter {
             }
         }
 
-        if (prefs.getBoolean("broadcast_to_pebble", false) && (PebbleUtil.getCurrentPebbleSyncType() != 1)) {
-            startPebbleSyncService();
+        // xDrip Pebble Protocol
+        if (PebbleWatchState.isEnabled()) {
+            PebbleService.registerReceiver();
         }
 
         //startSyncService(); // TODO do we need to actually do this here?
@@ -435,11 +436,6 @@ public class CollectionServiceStarter {
             startServiceCompat(new Intent(this.mContext, Ob1G5CollectionService.class));
         }
         //}
-    }
-
-    private void startPebbleSyncService() {
-        Log.d(TAG, "starting PebbleWatchSync service");
-        startServiceCompat(new Intent(this.mContext, PebbleWatchSync.class));
     }
 
     /*private void startSyncService() {

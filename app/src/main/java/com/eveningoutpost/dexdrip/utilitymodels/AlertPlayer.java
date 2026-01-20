@@ -31,7 +31,6 @@ import com.eveningoutpost.dexdrip.models.UserError.Log;
 import com.eveningoutpost.dexdrip.R;
 import com.eveningoutpost.dexdrip.services.SnoozeOnNotificationDismissService;
 import com.eveningoutpost.dexdrip.SnoozeActivity;
-import com.eveningoutpost.dexdrip.utilitymodels.pebble.PebbleWatchSync;
 import com.eveningoutpost.dexdrip.eassist.AlertTracker;
 import com.eveningoutpost.dexdrip.ui.FlashLight;
 import com.eveningoutpost.dexdrip.ui.helpers.AudioFocusType;
@@ -602,13 +601,6 @@ public class AlertPlayer {
 
         // send to bluejay
         BlueJayEntry.sendAlertIfEnabled((alert.above ? "High" : "Low") + " Alert " + bgValue + " " + alert.name); // string text is used to determine alert type
-
-        // send alert to pebble
-        if (Pref.getBooleanDefaultFalse("broadcast_to_pebble") && (Pref.getBooleanDefaultFalse("pebble_vibe_alerts"))) {
-            if (JoH.ratelimit("pebble_vibe_start", 59)) {
-                JoH.startService(PebbleWatchSync.class);
-            }
-        }
 
         //send alert to amazfit
         if (Pref.getBooleanDefaultFalse("pref_amazfit_enable_key")
